@@ -88,11 +88,27 @@ body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;backgroun
 .ana-list{margin:10px 0 0;padding-left:18px;color:var(--fg);font-size:14px;line-height:1.55}
 .ana-list li{margin:4px 0}
 body.embed .noembed{display:none!important}
+.gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#1f2630,#0d0f12 70%);transition:opacity .5s}
+.gate.out{opacity:0;pointer-events:none}
+body.locked{overflow:hidden}
+.gbox{display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px;width:min(360px,90vw)}
+.glogo{width:110px;height:110px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:#eef1f4;background:linear-gradient(160deg,#2b4d7a,#1a2f4d);border:2px solid #5a8fd0;box-shadow:0 0 40px rgba(90,143,208,.35)}
+.gtitle{margin:0;color:#7fb2ff;font-weight:800;letter-spacing:.18em;font-size:13px;text-align:center}
+.gbtn{background:#173a2a;border:2px solid #3ecf8e;color:#7ff0b8;border-radius:999px;padding:14px 34px;font-weight:800;letter-spacing:.16em;font-size:14px;box-shadow:0 0 0 4px rgba(90,169,255,.35)}
+#g-form{display:flex;flex-direction:column;gap:12px;width:100%;align-items:center}
+#g-form input{width:100%;text-align:center;font-size:16px;letter-spacing:.1em}
+.gerr{margin:0;color:var(--bad);font-size:13px;min-height:16px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
 </head>
 <body>
+<div class="gate" id="gate"><div class="gbox">
+  <div class="glogo">R11</div>
+  <p class="gtitle" id="g-title">R11 SYSTEM STANDBY</p>
+  <button class="gbtn" id="g-start">TAP TO START</button>
+  <form id="g-form" hidden><input id="g-pass" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button class="gbtn" type="submit">ENTER</button><p class="gerr" id="g-err"></p></form>
+</div></div>
 <div class="wrap">
   <header>
     <h1>Board Signal XAUUSD</h1>
@@ -508,54 +524,92 @@ drawRefs();
 (function(){ const d = $('ref-box'); if (!d) return; try { d.open = localStorage.getItem(KEY + '_ref') === '1'; } catch(e){}
   d.addEventListener('toggle', () => { try { localStorage.setItem(KEY + '_ref', d.open ? '1' : '0'); } catch(e){} }); })();
 
-// ===== Suara (Web Speech API, dalam browser sahaja) =====
-const VKEY = KEY + '_voice', LKEY = KEY + '_vlang', SKEY = KEY + '_spoken';
-let VOICE_ON = false, VLANG = 'en', spoken = null;
-try { VOICE_ON = !EMBED && localStorage.getItem(VKEY) === '1'; VLANG = 'en'; spoken = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){}
-const CAN_SPEAK = 'speechSynthesis' in window;
-function pickVoice(){
-  if (!CAN_SPEAK) return null; const vs = speechSynthesis.getVoices();
-  const pref = VLANG === 'ms' ? ['ms', 'id'] : ['en-gb', 'en-us', 'en'];
-  for (const p of pref){ const v = vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p) && /female|zira|aria|jenny|libby|sonia|samantha|damayanti|yasmin|google/i.test(x.name)) || vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p)); if (v) return v; }
-  return null;
-}
-function speak(text){
-  if (!CAN_SPEAK || !text) return;
-  const u = new SpeechSynthesisUtterance(text), v = pickVoice();
-  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = VLANG === 'ms' ? 'ms-MY' : 'en-GB';
-  u.rate = 0.95; speechSynthesis.speak(u);
-}
+// ===== Suara & bunyi (dalam browser sahaja) =====
 const NUM = (v) => v == null ? '' : String(Math.round(+v * 100) / 100);
-const ARAH = (a) => VLANG === 'ms' ? (a === 'BUY' ? 'beli' : 'jual') : (a === 'BUY' ? 'buy' : 'sell');
-function sayNew(s){ return VLANG === 'ms'
-  ? `Signal baru. Emas, ${ARAH(s.arah)}, pada ${NUM(s.entry)}. Stop loss ${NUM(s.sl)}. Take profit satu ${NUM(s.tp1)}.`
-  : `New ${ARAH(s.arah)} signal, Gold. Entry ${NUM(s.entry)}. Stop loss ${NUM(s.sl)}. Take profit one ${NUM(s.tp1)}.`; }
+const DIR = (a) => a === 'BUY' ? 'buy' : 'sell';
+// ---- bunyi (Web Audio, tiada fail) ----
+let AC = null;
+function ac(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f, t0, dur, type, vol, f2){ const a = ac(); if (!a) return; const now = a.currentTime + t0, o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, now); if (f2) o.frequency.linearRampToValueAtTime(f2, now + dur);
+  g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(vol || .2, now + .02); g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  o.connect(g); g.connect(a.destination); o.start(now); o.stop(now + dur + .05); }
+const SFX = {
+  siren(){ for (let i = 0; i < 4; i++) { tone(620, i * .7, .35, 'sawtooth', .11, 1250); tone(1250, i * .7 + .35, .35, 'sawtooth', .11, 620); } return 2900; },
+  win(){ [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .11, .55, 'triangle', .22)); tone(1568, .6, 1.0, 'sine', .14); tone(2093, .75, .9, 'sine', .08); return 1700; },
+  signal(){ tone(880, 0, .25, 'sine', .25); tone(660, .28, .35, 'sine', .25); tone(880, .7, .25, 'sine', .25); tone(660, .98, .45, 'sine', .25); return 1550; },
+  boot(){ tone(220, 0, .7, 'sine', .14, 440); tone(440, .55, .6, 'triangle', .14, 880); tone(880, 1.1, .7, 'sine', .12); return 1700; },
+  ok(){ tone(988, 0, .16, 'sine', .2); tone(1319, .17, .4, 'sine', .2); return 650; },
+  err(){ tone(200, 0, .4, 'square', .1); tone(150, .42, .4, 'square', .1); return 900; } };
+// ---- suara: dalam English, beratur supaya tidak bertindih ----
+const VKEY = KEY + '_voice', SKEY = KEY + '_spoken';
+let VOICE_ON = true, spoken = null; const VLANG = 'en';
+try { VOICE_ON = !EMBED && localStorage.getItem(VKEY) !== '0'; spoken = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){}
+const CAN_SPEAK = 'speechSynthesis' in window;
+function pickVoice(){ if (!CAN_SPEAK) return null; const vs = speechSynthesis.getVoices();
+  for (const p of ['en-gb', 'en-us', 'en']) { const v = vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p) && /female|zira|aria|jenny|libby|sonia|samantha|serena|kate|google uk english female/i.test(x.name)) || vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p)); if (v) return v; }
+  return null; }
+let chain = Promise.resolve();
+function announce(sfx, text){
+  chain = chain.then(() => new Promise((res) => {
+    const ms = sfx && SFX[sfx] ? SFX[sfx]() : 0;
+    setTimeout(() => { if (!text || !CAN_SPEAK) return res();
+      const u = new SpeechSynthesisUtterance(text), v = pickVoice(); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB';
+      u.rate = 0.95; let done = false; const fin = () => { if (!done) { done = true; res(); } };
+      u.onend = fin; u.onerror = fin; speechSynthesis.speak(u); setTimeout(fin, 45000); }, ms + 150);
+  }));
+}
+function speak(text){ announce(null, text); }
+function statsLine(){ const done = data.filter((s) => s.status in PIPS), w = done.filter((s) => s.status.startsWith('WIN')).length, l = done.length - w, p = done.reduce((a, s) => a + PIPS[s.status], 0);
+  if (!done.length) return ''; return `Win rate is now ${Math.round(w / done.length * 100)} percent, with ${w} ${w === 1 ? 'win' : 'wins'} and ${l} ${l === 1 ? 'loss' : 'losses'}. Total ${p >= 0 ? 'plus' : 'minus'} ${Math.abs(p)} pips.`; }
+function sayNew(s){ return `Attention please. New ${DIR(s.arah)} signal for Gold. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. Entry price, ${NUM(s.entry)}. Stop loss at ${NUM(s.sl)}, that is sixty pips. Take profit one at ${NUM(s.tp1)}, take profit two at ${NUM(s.tp2)}, and take profit three at ${NUM(s.tp3)}. Wait for price to come back to the entry zone before you enter. Always manage your risk.`; }
 function sayStatus(s){
-  const m = {'WIN TP1':['take profit satu kena','take profit one hit'], 'WIN TP2':['take profit dua kena','take profit two hit'], 'WIN TP3':['take profit tiga kena','take profit three hit'], 'LOSS':['stop loss kena','stop loss hit'], 'BATAL':['signal dibatalkan','signal cancelled'], 'MENUNGGU':['menunggu entry','waiting for entry']}[s.status];
-  if (!m) return '';
-  return VLANG === 'ms' ? `Emas, ${ARAH(s.arah)} ${NUM(s.entry)}. ${m[0]}.` + (String(s.status).startsWith('WIN') ? ' Tahniah.' : '')
-                        : `Gold, ${ARAH(s.arah)} ${NUM(s.entry)}. ${m[1]}.`; }
-function sayLatest(){ const l = sorted()[0]; if (!l) return VLANG === 'ms' ? 'Belum ada signal.' : 'No signal yet.';
-  const st = (VLANG === 'ms' ? 'Status, ' : 'Status, ') + ({'WIN TP1':'take profit 1','WIN TP2':'take profit 2','WIN TP3':'take profit 3','LOSS':'stop loss','MENUNGGU': VLANG === 'ms' ? 'menunggu entry' : 'waiting for entry','BATAL': VLANG === 'ms' ? 'dibatalkan' : 'cancelled'}[l.status] || l.status) + '.'; return (VLANG === 'ms' ? 'Signal terkini. ' : 'Latest signal. ') + sayNew(l).replace(/^Signal baru\. |^New /, VLANG === 'ms' ? '' : '') + ' ' + st; }
-function sayAna(){ const tx = VLANG === 'en' ? (ANA && ANA.teks_en) : (ANA && ANA.teks); if (!tx) return ''; return (VLANG === 'ms' ? 'Analisis market ' : 'Gold market analysis, ') + (ANA.tf || '') + '. ' + tx.join(' '); }
+  const n = {'WIN TP1':'one','WIN TP2':'two','WIN TP3':'three'}[s.status];
+  if (n) return `Congratulations, sir. Take profit ${n} has been hit on the Gold ${DIR(s.arah)} signal from ${NUM(s.entry)}. That is plus ${PIPS[s.status]} pips. ${statsLine()} Well done.`;
+  if (s.status === 'LOSS') return `Attention. Stop loss has been hit on the Gold ${DIR(s.arah)} signal from ${NUM(s.entry)}. That is minus sixty pips. ${statsLine()} Stay disciplined, and wait for the next setup.`;
+  if (s.status === 'BATAL') return `The Gold ${DIR(s.arah)} signal from ${NUM(s.entry)} has been cancelled. No trade was taken.`;
+  return ''; }
+const SFX_OF = (s) => String(s.status).startsWith('WIN') ? 'win' : s.status === 'LOSS' ? 'siren' : 'ok';
+function sayLatest(){ const l = sorted()[0]; if (!l) return 'There is no signal yet.';
+  const st = {'WIN TP1':'take profit one hit','WIN TP2':'take profit two hit','WIN TP3':'take profit three hit','LOSS':'stop loss hit','MENUNGGU':'waiting for entry','BATAL':'cancelled'}[l.status] || l.status;
+  return sayNew(l).replace('Attention please. New', 'Latest signal. A') + ` Current status, ${st}.`; }
+function sayAna(){ const tx = ANA && (ANA.teks_en || ANA.teks); if (!tx) return 'There is no market analysis yet.'; return 'Gold market analysis, ' + (ANA.tf || '') + ' chart. ' + tx.join(' '); }
 function voiceCheck(){
-  const all = sorted().slice().reverse(), first = !spoken;
-  if (first) spoken = {};
-  const msgs = [];
-  all.forEach((s) => { if (!(s.id in spoken)) { if (!first) msgs.push(sayNew(s)); } else if (spoken[s.id] !== s.status && !first) msgs.push(sayStatus(s)); spoken[s.id] = s.status; });
-  const am = ANA && ANA.masa; if (am && spoken.__ana !== am) { if (!first && spoken.__ana) msgs.push(VLANG === 'ms' ? 'Analisis market dikemas kini.' : 'Market analysis updated.'); spoken.__ana = am; }
+  const all = sorted().slice().reverse(), first = !spoken; if (first) spoken = {};
+  const q = [];
+  all.forEach((s) => { if (!(s.id in spoken)) { if (!first) q.push(['signal', sayNew(s)]); } else if (spoken[s.id] !== s.status && !first) { const tx = sayStatus(s); if (tx) q.push([SFX_OF(s), tx]); } spoken[s.id] = s.status; });
+  const am = ANA && ANA.masa; if (am && spoken.__ana !== am) { if (!first && spoken.__ana) q.push(['ok', 'Market analysis has been updated. ' + ((ANA.teks_en || [])[0] || '') + ' Tap listen to analysis for the full details.']); spoken.__ana = am; }
   try { localStorage.setItem(SKEY, JSON.stringify(spoken)); } catch(e){}
-  if (VOICE_ON && !EMBED) msgs.filter(Boolean).forEach(speak);
+  if (VOICE_ON && !EMBED && UNLOCKED) q.forEach((x) => announce(x[0], x[1]));
 }
 function voiceUI(){ const b = $('b-voice'); if (!b) return; b.textContent = VOICE_ON ? '🔊 Suara ON' : '🔇 Suara OFF'; b.classList.toggle('acc', VOICE_ON); }
-if (!CAN_SPEAK) { ['b-voice','b-say-sig','b-say-ana'].forEach((i) => { if ($(i)) $(i).hidden = true; }); }
+if (!CAN_SPEAK) { ['b-say-sig','b-say-ana'].forEach((i) => { if ($(i)) $(i).hidden = true; }); }
 $('b-voice').addEventListener('click', () => { VOICE_ON = !VOICE_ON; try { localStorage.setItem(VKEY, VOICE_ON ? '1' : '0'); } catch(e){}
-  voiceUI(); if (CAN_SPEAK) { speechSynthesis.cancel(); speak(VOICE_ON ? (VLANG === 'ms' ? 'Suara dihidupkan. Anda akan dengar signal baru dan keputusan.' : 'Voice on. You will hear new signals and results.') : ''); } });
-
-$('b-say-sig').addEventListener('click', () => { if (CAN_SPEAK) { speechSynthesis.cancel(); speak(sayLatest()); } });
-$('b-say-ana').addEventListener('click', () => { if (CAN_SPEAK) { speechSynthesis.cancel(); speak(sayAna()); } });
-if (CAN_SPEAK) speechSynthesis.onvoiceschanged = () => {};
+  voiceUI(); if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); if (VOICE_ON) announce('ok', 'Voice on. You will hear new signals, take profits and stop losses.'); });
+$('b-say-sig').addEventListener('click', () => { if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, sayLatest()); });
+$('b-say-ana').addEventListener('click', () => { if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, sayAna()); });
 voiceUI();
+// ---- pintu masuk R11 ----
+const PASS_HASH = ['147b1218f95a7b6339380930a2abb8d727ed469def3950223cae8324ad00a609'];
+let UNLOCKED = false;
+async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join(''); }
+(function gate(){
+  const g = $('gate'); if (!g) return;
+  if (EMBED) { g.remove(); UNLOCKED = true; return; }
+  let authed = false; try { authed = sessionStorage.getItem(KEY + '_auth') === '1'; } catch(e){}
+  document.body.classList.add('locked');
+  $('g-start').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel();
+    $('g-start').hidden = true;
+    if (authed) { $('g-title').textContent = 'WELCOME BACK'; announce('boot', 'Welcome back, sir. This is R eleven. All systems are online.'); setTimeout(openBoard, 600); }
+    else { $('g-title').textContent = 'PLEASE INSERT YOUR PASSWORD'; $('g-form').hidden = false; setTimeout(() => $('g-pass').focus(), 50);
+      announce('boot', 'Welcome aboard, sir. This is R eleven. Please insert your password.'); } });
+  $('g-form').addEventListener('submit', async (e) => { e.preventDefault();
+    const h = await sha($('g-pass').value.trim().toLowerCase());
+    if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); } catch(e){} $('g-err').textContent = '';
+      announce('ok', 'Access granted. Welcome aboard, sir. All systems are online.'); openBoard(); }
+    else { $('g-err').textContent = 'Password salah. Cuba lagi.'; $('g-pass').value = ''; announce('err', 'Access denied. Please try again.'); } });
+  function openBoard(){ UNLOCKED = true; g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 600); }
+})();
 save();
 async function sync(){
   try {
@@ -575,7 +629,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123011901';
+const APP_VERSION = '20261123012447';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
