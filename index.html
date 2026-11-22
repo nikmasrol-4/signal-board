@@ -171,11 +171,11 @@ body.locked{overflow:hidden}
   <section class="card">
     <h2>STATISTIK SIGNAL</h2>
     <div class="stats">
-      <div class="ring" id="ring"></div>
+      <div class="ring tap" id="ring"></div>
       <dl class="slist">
-        <div><dt>Total pips</dt><dd id="s-pips">0</dd></div>
-        <div><dt>Purata pips</dt><dd id="s-avg">—</dd></div>
-        <div><dt>Menunggu retest</dt><dd id="s-wait">0</dd></div>
+        <div class="tap" id="row-pips"><dt>Total pips</dt><dd id="s-pips">0</dd></div>
+        <div class="tap" id="row-avg"><dt>Purata pips</dt><dd id="s-avg">—</dd></div>
+        <div class="tap" id="row-wait"><dt>Menunggu retest</dt><dd id="s-wait">0</dd></div>
       </dl>
     </div>
     <p class="note">WIN TP1 = +40 · WIN TP2 = +80 · WIN TP3 = +100 · LOSS = −60 pips. Sampai TP1 dulu dikira WIN walaupun kena SL selepas itu.</p>
@@ -646,6 +646,16 @@ function sayType(n){ const a = grpStats(data.filter((s) => String(s.jenis || '')
   return TYPE_EN[n] + ` Results so far for type ${n}: ${a.n} ${a.n === 1 ? 'signal' : 'signals'}, ${a.w} ${a.w === 1 ? 'win' : 'wins'}, ${a.l} ${a.l === 1 ? 'loss' : 'losses'}` + (a.wr != null ? `, win rate ${a.wr} percent.` : '. No finished signal yet.'); }
 function tapSay(text){ ac(); if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); speakNow(text); }
 [['card-total', sayTotal], ['card-wr', sayWR], ['card-win', sayWins], ['card-loss', sayLosses], ['sig-line', sayLatest]].forEach(([id, fn]) => { const el = $(id); if (el) el.addEventListener('click', () => tapSay(fn())); });
+function sayPips(){ const a = grpStats(data); return (a.w + a.l) ? `Total pips, ${a.p >= 0 ? 'plus' : 'minus'} ${Math.abs(a.p)}, from ${a.w + a.l} finished signals. ${a.w} ${a.w === 1 ? 'win' : 'wins'} and ${a.l} ${a.l === 1 ? 'loss' : 'losses'}.` : 'Total pips is zero. No signal has finished yet.'; }
+function sayAvg(){ const a = grpStats(data), n = a.w + a.l; if (!n) return 'There is no average yet. No signal has finished.'; const v = Math.round(a.p / n * 10) / 10; return `Average result is ${v >= 0 ? 'plus' : 'minus'} ${Math.abs(v)} pips per signal, from ${n} finished ${n === 1 ? 'signal' : 'signals'}.`; }
+function sayWait(){ const w = sorted().filter((s) => s.status === 'MENUNGGU'); if (!w.length) return 'No signal is waiting for a retest right now.';
+  return `${w.length} ${w.length === 1 ? 'signal is' : 'signals are'} waiting for price to retest the entry box. ` + w.slice(0, 4).map((s) => `${DIR(s.arah)} at ${NUM(s.entry)}`).join(', ') + (w.length > 4 ? `, and ${w.length - 4} more.` : '.'); }
+function sayStatsAll(){ return 'Signal statistics. ' + sayWR() + ' ' + sayAvg() + ' ' + sayWait(); }
+$('ring').addEventListener('click', (e) => { e.stopPropagation(); tapSay(sayWR()); });
+$('row-pips').addEventListener('click', (e) => { e.stopPropagation(); tapSay(sayPips()); });
+$('row-avg').addEventListener('click', (e) => { e.stopPropagation(); tapSay(sayAvg()); });
+$('row-wait').addEventListener('click', (e) => { e.stopPropagation(); tapSay(sayWait()); });
+$('ring').closest('.card').addEventListener('click', () => tapSay(sayStatsAll()));
 $('c-line').addEventListener('click', () => tapSay(sayChart('line')));
 $('c-candle').addEventListener('click', () => tapSay(sayChart('candle')));
 $('c-ana').addEventListener('click', () => tapSay(sayAna()));
@@ -732,7 +742,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123015015';
+const APP_VERSION = '20261123020126';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
