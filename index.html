@@ -109,6 +109,13 @@ body.locked{overflow:hidden}
 .flash{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:40;padding:14px 22px;border-radius:16px;font-weight:900;font-size:24px;letter-spacing:.04em;text-align:center;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:blk .7s steps(2,start) infinite;pointer-events:none}
 .flash small{display:block;font-size:13px;font-weight:700;letter-spacing:.08em;opacity:.9}
 .flash.new{background:#173052;color:#cfe4ff;border:2px solid #5aa9ff}.flash.win{background:#0f3a28;color:#b9ffd9;border:2px solid #3ecf8e}.flash.loss{background:#4a1418;color:#ffd0d0;border:2px solid #ff6b6b}
+.hist{list-style:none;margin:10px 0 0;padding:0 0 0 14px;border-left:2px solid #2e3a4a}
+.hs{position:relative;padding:8px 0 10px 14px}
+.hs::before{content:'';position:absolute;left:-21px;top:13px;width:10px;height:10px;border-radius:50%;background:#5aa9ff;box-shadow:0 0 0 3px #16181c}
+.hs-d{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;color:#7fb2ff;text-transform:uppercase}
+.hs b{display:block;margin:2px 0 4px;font-size:15px}
+.hs p{margin:0;color:var(--mut);font-size:13px;line-height:1.5}
+.hs-visi{margin:12px 0 0;padding:12px;border-radius:10px;background:#162131;border:1px solid #2b4d7a;color:#cfe4ff;font-size:13.5px;line-height:1.5}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -212,6 +219,16 @@ body.locked{overflow:hidden}
       <button class="btn2" id="b-export">Salin semua data</button>
       <button class="btnd" id="b-del">Padam signal dipilih</button>
     </div>
+  </section>
+
+  <section class="card" id="sejarah-card">
+    <details class="ref" id="hist-box">
+    <summary><span>📜 SEJARAH R11</span><span class="ref-hint">Bagaimana R11 bermula</span><span class="ref-tog"></span></summary>
+    <p class="note" style="margin-top:4px">Nama RII: Reality Interference Intelligence. Sentuh mana-mana bahagian untuk dengar.</p>
+    <ol class="hist"><li class="hs tap" data-h="0"><span class="hs-d">Mei 2025</span><b>Idea R11 lahir</b><p>R11 bermula sebagai indikator TradingView yang membaca struktur harga: Higher High, Higher Low, Lower Low dan Lower High. Idea asasnya mudah: tambah beberapa &quot;guard&quot; (penapis) supaya isyarat palsu ditapis sebelum sampai kepada trader.</p></li><li class="hs tap" data-h="1"><span class="hs-d">Ogos 2025</span><b>Struktur, zon dan sasaran</b><p>Skrip Major Structure Zones dengan BOS: kotak supply dan demand, isyarat BUY dan SELL, dan sasaran Fibonacci sendiri: LVL 1.272, TP WAJIB 1.618 hingga TP3. Idea menggabungkan R11 dengan AI mula disebut.</p></li><li class="hs tap" data-h="2"><span class="hs-d">Sept 2025</span><b>RII Renoult: Arah dan Momentum</b><p>Keputusan reka bentuk penting: Arah (hala pasaran) dipisahkan daripada Momentum (kekuatan gerakan). Enjin Core Impulse diperkenalkan untuk setup baharu.</p></li><li class="hs tap" data-h="3"><span class="hs-d">Okt 2025</span><b>Auto Zone dan R11 v3</b><p>Zon tak perlu diagak lagi: Auto Zone melukis zon sendiri. R11 v3 membawa Scanner Resonance, Guard 3 dan 4, Primary Box dan Secondary Box. Setup KillerFloat versi baharu mengurangkan floating.</p></li><li class="hs tap" data-h="4"><span class="hs-d">2026</span><b>JHARVISH: dari carta ke server</b><p>Isyarat tidak lagi berhenti di carta. Webhook TradingView, server Python dan dashboard: JHARVISH Prototype 1 dengan penilaian WIN/LOSS automatik. Kemudian datang mod Autopilot, Navigator, Novice, Pilot Bus (Zon Maverik), Cruiser Forward, AI Pemerhati dan EA MT5 CopyTrade.</p></li><li class="hs tap" data-h="5"><span class="hs-d">Nov 2026</span><b>Board Signal R11</b><p>Board untuk client: carta setup line dan candle, analisis market, statistik ikut jenis entry, dan R11 yang bercakap, memberi amaran dan meraikan setiap TP.</p></li></ol>
+    <p class="hs-visi tap" id="hist-visi">Visi R11: sistem yang boleh diprogramkan dan diuji dengan simulasi, dibina lapis demi lapis dengan guard, dengan matlamat akhir Full Autopilot, iaitu robot melaksanakan trade dan trader memantau.</p>
+    <button class="btn2" id="b-say-hist" style="padding:6px 12px;font-size:12px;margin-top:10px">🔊 Dengar sejarah penuh</button>
+    </details>
   </section>
 
   <p class="note">Signal ini bukan nasihat kewangan. Keputusan untuk masuk trade adalah tanggungjawab sendiri. Signal dikemas kini secara automatik.</p>
@@ -656,6 +673,10 @@ $('row-pips').addEventListener('click', (e) => { e.stopPropagation(); tapSay(say
 $('row-avg').addEventListener('click', (e) => { e.stopPropagation(); tapSay(sayAvg()); });
 $('row-wait').addEventListener('click', (e) => { e.stopPropagation(); tapSay(sayWait()); });
 $('ring').closest('.card').addEventListener('click', () => tapSay(sayStatsAll()));
+const HIST_EN = ["May 2025. The idea of R eleven is born. It started as a TradingView indicator that reads price structure: higher highs, higher lows, lower lows and lower highs. The core idea was simple. Add a few guards, or filters, so that false signals are removed before they reach the trader.", "August 2025. Structure, zones and targets. The Major Structure Zones script with break of structure. Supply and demand boxes, buy and sell signals, and its own Fibonacci targets: level one point two seven two, the must-hit target at one point six one eight, up to take profit three. The idea of combining R eleven with A I was first mentioned.", "September 2025. R I I Renoult. An important design decision: direction, the way the market is heading, was separated from momentum, the strength of the move. The Core Impulse engine was introduced for new setups.", "October 2025. Auto Zone and R eleven version three. No more guessing zones. Auto Zone draws them automatically. Version three brought Scanner Resonance, Guards three and four, the primary box and the secondary box. The new KillerFloat setup reduced floating.", "Twenty twenty six. JHARVISH, from the chart to the server. Signals no longer stop on the chart. TradingView webhooks, a Python server and a dashboard: JHARVISH prototype one, with automatic win and loss scoring. Then came the Autopilot, Navigator, Novice and Pilot Bus modes, Cruiser Forward, the A I observer, and the M T five copy trade robot.", "November 2026. The R eleven signal board. A board for clients, with line and candle setup charts, market analysis, statistics by entry type, and R eleven itself speaking, warning, and celebrating every take profit."], VISI_EN = "The vision of R eleven: a system that can be programmed and tested with simulation, built layer by layer with guards. The final goal is full autopilot, where the robot executes the trades and the trader supervises.";
+document.querySelectorAll('.hs[data-h]').forEach((el) => el.addEventListener('click', () => tapSay(HIST_EN[+el.dataset.h])));
+$('hist-visi').addEventListener('click', () => tapSay(VISI_EN));
+$('b-say-hist').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); speakNow('The history of R eleven. ' + HIST_EN[0]); HIST_EN.slice(1).concat([VISI_EN]).forEach((x) => announce(null, x)); });
 $('c-line').addEventListener('click', () => tapSay(sayChart('line')));
 $('c-candle').addEventListener('click', () => tapSay(sayChart('candle')));
 $('c-ana').addEventListener('click', () => tapSay(sayAna()));
@@ -742,7 +763,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123020126';
+const APP_VERSION = '20261123022743';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
