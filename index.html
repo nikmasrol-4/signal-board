@@ -87,6 +87,7 @@ body.embed .wrap > *:not(#carta-card):not(#analisis-card), body.embed .fab, body
 body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;background:transparent}
 .ana-list{margin:10px 0 0;padding-left:18px;color:var(--fg);font-size:14px;line-height:1.55}
 .ana-list li{margin:4px 0}
+body.embed .noembed{display:none!important}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -95,7 +96,7 @@ body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;backgroun
 <div class="wrap">
   <header>
     <h1>Board Signal XAUUSD</h1>
-    <p class="sync" id="sync">Menyambung…</p> <button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button>
+    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> <select id="v-lang" class="noembed" aria-label="Bahasa suara" style="padding:4px 8px;font-size:12px;margin-top:6px"><option value="ms">Bahasa Melayu</option><option value="en">English</option></select></span>
     <p class="sub">Strategi R1/S1 · Reversal &amp; Continuation · SL 60 pips · Satu trade pada satu masa</p>
   </header>
 
@@ -107,7 +108,7 @@ body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;backgroun
   </div>
 
   <section class="card">
-    <div class="head"><h2>SIGNAL TERKINI</h2><span class="pill" id="l-status">—</span></div>
+    <div class="head"><h2>SIGNAL TERKINI</h2><span style="display:flex;gap:8px;align-items:center"><button class="btn2" id="b-say-sig" style="padding:4px 10px;font-size:12px">🔊 Dengar</button><span class="pill" id="l-status">—</span></span></div>
     <p class="sig"><span id="l-arah">—</span> <span id="l-entry">—</span></p>
     <dl class="levels">
       <div><dt>SL</dt><dd id="l-sl">—</dd></div>
@@ -126,6 +127,7 @@ body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;backgroun
     <p class="note" id="ana-meta" style="margin-top:6px"></p>
     <div class="chart" id="c-ana" style="margin-top:8px"></div>
     <ul class="ana-list" id="ana-teks"></ul>
+    <button class="btn2" id="b-say-ana" style="padding:6px 12px;font-size:12px;margin-top:10px">🔊 Dengar analisis</button>
   </section>
 
   <section class="card" id="carta-card">
@@ -319,6 +321,7 @@ function render(){
     tb.appendChild(tr);
   });
   drawAna();
+  voiceCheck();
   const cur = all.find((s) => s.id === sel);
   if (EMBED) { const ss = $('sigsel'); ss.replaceChildren(); all.forEach((s) => ss.appendChild(new Option(s.masa + ' · ' + s.arah + ' ' + f2(s.entry) + (s.jenis ? ' · T' + s.jenis : '') + ' · ' + s.status, s.id, false, s.id === sel))); ss.onchange = () => { sel = ss.value; render(); }; }
   $('picked').textContent = cur ? 'Signal dipilih: ' + cur.arah + ' ' + f2(cur.entry) + ' · ' + (cur.setup||'') + (cur.jenis ? ' · Type ' + cur.jenis : '') + ' · ' + (cur.masa||'') + ' · ' + cur.status : '';
@@ -504,6 +507,55 @@ function drawRefs(){
 drawRefs();
 (function(){ const d = $('ref-box'); if (!d) return; try { d.open = localStorage.getItem(KEY + '_ref') === '1'; } catch(e){}
   d.addEventListener('toggle', () => { try { localStorage.setItem(KEY + '_ref', d.open ? '1' : '0'); } catch(e){} }); })();
+
+// ===== Suara (Web Speech API, dalam browser sahaja) =====
+const VKEY = KEY + '_voice', LKEY = KEY + '_vlang', SKEY = KEY + '_spoken';
+let VOICE_ON = false, VLANG = 'ms', spoken = null;
+try { VOICE_ON = !EMBED && localStorage.getItem(VKEY) === '1'; VLANG = localStorage.getItem(LKEY) || 'ms'; spoken = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){}
+const CAN_SPEAK = 'speechSynthesis' in window;
+function pickVoice(){
+  if (!CAN_SPEAK) return null; const vs = speechSynthesis.getVoices();
+  const pref = VLANG === 'ms' ? ['ms', 'id'] : ['en-gb', 'en-us', 'en'];
+  for (const p of pref){ const v = vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p) && /female|zira|aria|jenny|libby|sonia|samantha|damayanti|yasmin|google/i.test(x.name)) || vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p)); if (v) return v; }
+  return null;
+}
+function speak(text){
+  if (!CAN_SPEAK || !text) return;
+  const u = new SpeechSynthesisUtterance(text), v = pickVoice();
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = VLANG === 'ms' ? 'ms-MY' : 'en-GB';
+  u.rate = 0.95; speechSynthesis.speak(u);
+}
+const NUM = (v) => v == null ? '' : String(Math.round(+v * 100) / 100);
+const ARAH = (a) => VLANG === 'ms' ? (a === 'BUY' ? 'beli' : 'jual') : (a === 'BUY' ? 'buy' : 'sell');
+function sayNew(s){ return VLANG === 'ms'
+  ? `Signal baru. Emas, ${ARAH(s.arah)}, pada ${NUM(s.entry)}. Stop loss ${NUM(s.sl)}. Take profit satu ${NUM(s.tp1)}.`
+  : `New ${ARAH(s.arah)} signal, Gold. Entry ${NUM(s.entry)}. Stop loss ${NUM(s.sl)}. Take profit one ${NUM(s.tp1)}.`; }
+function sayStatus(s){
+  const m = {'WIN TP1':['take profit satu kena','take profit one hit'], 'WIN TP2':['take profit dua kena','take profit two hit'], 'WIN TP3':['take profit tiga kena','take profit three hit'], 'LOSS':['stop loss kena','stop loss hit'], 'BATAL':['signal dibatalkan','signal cancelled'], 'MENUNGGU':['menunggu entry','waiting for entry']}[s.status];
+  if (!m) return '';
+  return VLANG === 'ms' ? `Emas, ${ARAH(s.arah)} ${NUM(s.entry)}. ${m[0]}.` + (String(s.status).startsWith('WIN') ? ' Tahniah.' : '')
+                        : `Gold, ${ARAH(s.arah)} ${NUM(s.entry)}. ${m[1]}.`; }
+function sayLatest(){ const l = sorted()[0]; if (!l) return VLANG === 'ms' ? 'Belum ada signal.' : 'No signal yet.';
+  const st = (VLANG === 'ms' ? 'Status, ' : 'Status, ') + ({'WIN TP1':'take profit 1','WIN TP2':'take profit 2','WIN TP3':'take profit 3','LOSS':'stop loss','MENUNGGU': VLANG === 'ms' ? 'menunggu entry' : 'waiting for entry','BATAL': VLANG === 'ms' ? 'dibatalkan' : 'cancelled'}[l.status] || l.status) + '.'; return (VLANG === 'ms' ? 'Signal terkini. ' : 'Latest signal. ') + sayNew(l).replace(/^Signal baru\. |^New /, VLANG === 'ms' ? '' : '') + ' ' + st; }
+function sayAna(){ if (!ANA || !ANA.teks) return ''; return (VLANG === 'ms' ? 'Analisis market ' : 'Market analysis, ') + (ANA.tf || '') + '. ' + ANA.teks.join(' '); }
+function voiceCheck(){
+  const all = sorted().slice().reverse(), first = !spoken;
+  if (first) spoken = {};
+  const msgs = [];
+  all.forEach((s) => { if (!(s.id in spoken)) { if (!first) msgs.push(sayNew(s)); } else if (spoken[s.id] !== s.status && !first) msgs.push(sayStatus(s)); spoken[s.id] = s.status; });
+  const am = ANA && ANA.masa; if (am && spoken.__ana !== am) { if (!first && spoken.__ana) msgs.push(VLANG === 'ms' ? 'Analisis market dikemas kini.' : 'Market analysis updated.'); spoken.__ana = am; }
+  try { localStorage.setItem(SKEY, JSON.stringify(spoken)); } catch(e){}
+  if (VOICE_ON && !EMBED) msgs.filter(Boolean).forEach(speak);
+}
+function voiceUI(){ const b = $('b-voice'); if (!b) return; b.textContent = VOICE_ON ? '🔊 Suara ON' : '🔇 Suara OFF'; b.classList.toggle('acc', VOICE_ON); $('v-lang').value = VLANG; }
+if (!CAN_SPEAK) { ['b-voice','v-lang','b-say-sig','b-say-ana'].forEach((i) => { if ($(i)) $(i).hidden = true; }); }
+$('b-voice').addEventListener('click', () => { VOICE_ON = !VOICE_ON; try { localStorage.setItem(VKEY, VOICE_ON ? '1' : '0'); } catch(e){}
+  voiceUI(); if (CAN_SPEAK) { speechSynthesis.cancel(); speak(VOICE_ON ? (VLANG === 'ms' ? 'Suara dihidupkan. Anda akan dengar signal baru dan keputusan.' : 'Voice on. You will hear new signals and results.') : ''); } });
+$('v-lang').addEventListener('change', () => { VLANG = $('v-lang').value; try { localStorage.setItem(LKEY, VLANG); } catch(e){} if (CAN_SPEAK) { speechSynthesis.cancel(); speak(VLANG === 'ms' ? 'Bahasa Melayu.' : 'English.'); } });
+$('b-say-sig').addEventListener('click', () => { if (CAN_SPEAK) { speechSynthesis.cancel(); speak(sayLatest()); } });
+$('b-say-ana').addEventListener('click', () => { if (CAN_SPEAK) { speechSynthesis.cancel(); speak(sayAna()); } });
+if (CAN_SPEAK) speechSynthesis.onvoiceschanged = () => {};
+voiceUI();
 save();
 async function sync(){
   try {
@@ -523,7 +575,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123010834';
+const APP_VERSION = '20261123011733';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
