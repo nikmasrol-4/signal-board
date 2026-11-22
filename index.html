@@ -385,7 +385,8 @@ $('b-del').addEventListener('click', () => {
 save();
 async function sync(){
   try {
-    const r = await fetch('https://nikmasrol-4.github.io/signal-board/signals.json?t=' + Date.now(), {cache:'no-store'});
+    const src = location.protocol === 'file:' ? 'https://nikmasrol-4.github.io/signal-board/signals.json' : 'signals.json';
+    const r = await fetch(src + '?t=' + Date.now(), {cache:'no-store'});
     if (!r.ok) throw new Error(r.status);
     const list = await r.json();
     if (Array.isArray(list)) {
