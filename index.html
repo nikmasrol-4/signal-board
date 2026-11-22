@@ -73,6 +73,13 @@ h2{scroll-margin-top:14px}
 .type svg{display:block;width:100%;height:auto;margin:4px 0}
 .tdesc{font-size:12.5px;color:var(--mut);margin:6px 0 0;line-height:1.45}
 .tbadge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid var(--acc);color:var(--acc);font-size:11px;font-weight:700}
+details.ref{border:1px solid var(--line);border-radius:12px;padding:0 14px;background:#191b1f}
+details.ref[open]{padding-bottom:14px}
+details.ref summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 0;font-weight:700;letter-spacing:.06em;font-size:14px}
+details.ref summary::-webkit-details-marker{display:none}
+.ref-hint{color:var(--mut);font-size:12px;font-weight:500;letter-spacing:0;flex:1}
+.ref-tog::after{content:'Buka ▾';color:var(--acc);font-size:12px;font-weight:600;letter-spacing:0}
+details.ref[open] .ref-tog::after{content:'Tutup ▴'}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -131,7 +138,9 @@ h2{scroll-margin-top:14px}
   </section>
 
   <section class="card" id="jenis-entry">
-    <h2 class="admin">JENIS ENTRY</h2>
+    <details class="admin ref" id="ref-box">
+    <summary><span>📚 RUJUKAN ADMIN</span><span class="ref-hint">Type 1–4 · Contoh R1</span><span class="ref-tog"></span></summary>
+    <h2 style="margin-top:14px">JENIS ENTRY</h2>
     <div class="types admin">
       <div class="type"><p class="lbl">Type 1 · Break M1</p><svg viewBox="0 0 220 150" role="img" aria-label="Rajah entry Type 1"><rect x="92" y="6" width="80" height="16" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="132.0" y="14.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY</text><rect x="146" y="58" width="66" height="14" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="179.0" y="65.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY</text><polyline points="8,120 38,72 62,104 98,14 110,38 124,24 140,84 160,66 176,104 192,144" fill="none" stroke="#eceef1" stroke-width="2" stroke-linejoin="round"/><line x1="62" y1="104" x2="184" y2="104" stroke="#eceef1" stroke-width="2"/><text x="123.0" y="118" fill="#9aa1ab" font-size="9" text-anchor="middle">BREAK M1</text></svg><p class="tdesc">Harga buat puncak, kemudian break struktur minor M1. Entry di kotak puncak atau kotak LH (R1) bila harga retest selepas break.</p></div>
       <div class="type"><p class="lbl">Type 2 · Sideway M1</p><svg viewBox="0 0 220 150" role="img" aria-label="Rajah entry Type 2"><rect x="78" y="6" width="86" height="16" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="121.0" y="14.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY SELL</text><rect x="48" y="104" width="110" height="16" rx="2" fill="#3ecf8e" fill-opacity=".16" stroke="#3ecf8e"/><text x="103.0" y="112.0" fill="#3ecf8e" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY BUY</text><polyline points="8,124 32,80 54,112 84,14 98,40 110,26 124,60 134,46 150,86" fill="none" stroke="#eceef1" stroke-width="2" stroke-linejoin="round"/><text x="185" y="62" fill="#9aa1ab" font-size="10" text-anchor="middle">sideway</text></svg><p class="tdesc">Harga bergerak dalam julat. SELL di kotak atas (puncak), BUY di kotak bawah (lembah).</p></div>
@@ -141,6 +150,7 @@ h2{scroll-margin-top:14px}
     <h2 class="admin" style="margin-top:18px">CONTOH R1 DENGAN CANDLE</h2>
     <p class="note admin" style="margin-top:6px">Candle dilukis semula oleh Claude daripada carta rujukan kau. Contoh cara letak kotak, bukan signal.</p>
     <div class="types admin" id="refs"></div>
+    </details>
     <h2 class="pij" style="margin-top:18px">PRESTASI IKUT JENIS</h2>
     <div class="tw"><table><thead><tr><th>Jenis</th><th class="n">Signal</th><th class="n">Win</th><th class="n">Loss</th><th class="n">Win rate</th><th class="n">Pips</th></tr></thead><tbody id="jrows"></tbody></table></div>
   </section>
@@ -447,6 +457,8 @@ function drawRefs(){
   });
 }
 drawRefs();
+(function(){ const d = $('ref-box'); if (!d) return; try { d.open = localStorage.getItem(KEY + '_ref') === '1'; } catch(e){}
+  d.addEventListener('toggle', () => { try { localStorage.setItem(KEY + '_ref', d.open ? '1' : '0'); } catch(e){} }); })();
 save();
 async function sync(){
   try {
@@ -464,7 +476,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123002042';
+const APP_VERSION = '20261123002542';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
