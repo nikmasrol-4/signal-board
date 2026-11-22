@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Signal XAU">
 <title>Board Signal XAUUSD</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <style>
 :root{--bg:#16181c;--panel:#1f2227;--line:#2e3239;--fg:#eceef1;--mut:#9aa1ab;--ok:#3ecf8e;--bad:#ff6b6b;--warn:#f5b942;--acc:#5aa9ff;--r:14px}
 *{box-sizing:border-box}
@@ -60,6 +63,7 @@ dialog{background:var(--panel);color:var(--fg);border:1px solid var(--line);bord
 dialog::backdrop{background:rgba(0,0,0,.6)}
 .sync{font-size:12px;margin:6px 0 0;color:var(--mut)}
 .sync.ok{color:var(--ok)}.sync.bad{color:var(--warn)}
+body.client .admin{display:none!important}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -116,24 +120,24 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   </section>
 
   <section class="card">
-    <div class="head"><h2>HISTORY</h2><span class="note" style="margin:0">Tukar keputusan terus dalam jadual</span></div>
+    <div class="head"><h2>HISTORY</h2><span class="note admin" style="margin:0">Tukar keputusan terus dalam jadual</span></div>
     <div class="tw">
       <table>
         <thead><tr><th>Masa</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <div class="row">
+    <div class="row admin">
       <button class="btn2" id="b-import">Import kod dari Claude</button>
       <button class="btn2" id="b-export">Salin semua data</button>
       <button class="btnd" id="b-del">Padam signal dipilih</button>
     </div>
   </section>
 
-  <p class="note">Signal dikira ikut peraturan strategi kau sendiri, bukan nasihat kewangan. Keputusan untuk masuk trade tetap di tangan kau. Signal baru dari Claude masuk sendiri. Keputusan yang kau tukar sendiri disimpan dalam telefon ini.</p>
+  <p class="note">Signal ini bukan nasihat kewangan. Keputusan untuk masuk trade adalah tanggungjawab sendiri. Signal dikemas kini secara automatik.</p>
 </div>
 
-<button class="btn fab" id="b-add">+ Signal</button>
+<button class="btn fab admin" id="b-add">+ Signal</button>
 
 <dialog id="d-add">
   <h2>TAMBAH SIGNAL</h2>
@@ -167,6 +171,9 @@ const PIPS = {'WIN TP1':40,'WIN TP2':80,'WIN TP3':100,'LOSS':-60};
 const STATUSES = ['MENUNGGU','WIN TP1','WIN TP2','WIN TP3','LOSS','BATAL'];
 const NS = 'http://www.w3.org/2000/svg';
 let data, sel = null;
+let ADMIN = false;
+try { if (location.hash === '#admin') localStorage.setItem(KEY + '_admin', '1'); if (location.hash === '#client') localStorage.removeItem(KEY + '_admin'); ADMIN = localStorage.getItem(KEY + '_admin') === '1'; } catch(e){}
+if (!ADMIN) document.body.classList.add('client');
 
 let deleted = [];
 try { deleted = JSON.parse(localStorage.getItem(KEY + '_del') || '[]'); } catch(e){}
@@ -178,7 +185,7 @@ function merge(st, list){
     const keep = st[i].status;
     st[i] = Object.assign({}, st[i], s);
     // Keputusan dari Claude menang; jika Claude masih MENUNGGU, kekalkan keputusan yang kau tukar sendiri
-    if (keep && (!s.status || s.status === 'MENUNGGU')) st[i].status = keep;
+    if (ADMIN && keep && (!s.status || s.status === 'MENUNGGU')) st[i].status = keep;
   });
   return st;
 }
@@ -229,7 +236,8 @@ function render(){
     const cells = [s.masa, s.arah, s.setup, f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
     cells.forEach((v, i) => {
       const td = document.createElement('td');
-      if (i === 5){
+      if (i === 5 && !ADMIN){ const sp = document.createElement('span'); sp.textContent = s.status; stCls(sp, s.status); td.appendChild(sp); }
+      else if (i === 5){
         const sl = document.createElement('select'); sl.className = 'st';
         STATUSES.forEach((o) => sl.appendChild(new Option(o, o, false, o === s.status)));
         stCls(sl, s.status);
@@ -391,6 +399,7 @@ async function sync(){
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
 sync(); setInterval(sync, 30000);
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('b-sync').addEventListener('click', () => { $('sync').textContent = 'Menyemak…'; sync(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 150); });
