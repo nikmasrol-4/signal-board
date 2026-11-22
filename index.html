@@ -66,6 +66,11 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 body.client .admin{display:none!important}
 .picked{font-size:13px;color:var(--warn);margin:8px 0 0;font-weight:600}
 h2{scroll-margin-top:14px}
+.types{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px;margin-top:10px}
+.type{background:#191b1f;border:1px solid var(--line);border-radius:12px;padding:12px}
+.type svg{display:block;width:100%;height:auto;margin:4px 0}
+.tdesc{font-size:12.5px;color:var(--mut);margin:6px 0 0;line-height:1.45}
+.tbadge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid var(--acc);color:var(--acc);font-size:11px;font-weight:700}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -94,6 +99,7 @@ h2{scroll-margin-top:14px}
       <div><dt>TP2 (80 pips)</dt><dd id="l-tp2">—</dd></div>
       <div><dt>TP3 (100+ pips)</dt><dd id="l-tp3">—</dd></div>
       <div><dt>Setup</dt><dd id="l-setup">—</dd></div>
+      <div><dt>Jenis entry</dt><dd id="l-jenis">—</dd></div>
       <div><dt>Masa</dt><dd id="l-masa">—</dd></div>
     </dl>
     <p class="note">MENUNGGU = entry hanya sah bila harga kembali ke kotak R1/S1. TP untuk merekod keputusan dalam history.</p>
@@ -122,6 +128,18 @@ h2{scroll-margin-top:14px}
     <p class="note">WIN TP1 = +40 · WIN TP2 = +80 · WIN TP3 = +100 · LOSS = −60 pips. Sampai TP1 dulu dikira WIN walaupun kena SL selepas itu.</p>
   </section>
 
+  <section class="card" id="jenis-entry">
+    <h2>JENIS ENTRY</h2>
+    <div class="types">
+      <div class="type"><p class="lbl">Type 1 · Break M1</p><svg viewBox="0 0 220 150" role="img" aria-label="Rajah entry Type 1"><rect x="92" y="6" width="80" height="16" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="132.0" y="14.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY</text><rect x="146" y="58" width="66" height="14" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="179.0" y="65.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY</text><polyline points="8,120 38,72 62,104 98,14 110,38 124,24 140,84 160,66 176,104 192,144" fill="none" stroke="#eceef1" stroke-width="2" stroke-linejoin="round"/><line x1="62" y1="104" x2="184" y2="104" stroke="#eceef1" stroke-width="2"/><text x="123.0" y="118" fill="#9aa1ab" font-size="9" text-anchor="middle">BREAK M1</text></svg><p class="tdesc">Harga buat puncak, kemudian break struktur minor M1. Entry di kotak puncak atau kotak LH (R1) bila harga retest selepas break.</p></div>
+      <div class="type"><p class="lbl">Type 2 · Sideway M1</p><svg viewBox="0 0 220 150" role="img" aria-label="Rajah entry Type 2"><rect x="78" y="6" width="86" height="16" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="121.0" y="14.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY SELL</text><rect x="48" y="104" width="110" height="16" rx="2" fill="#3ecf8e" fill-opacity=".16" stroke="#3ecf8e"/><text x="103.0" y="112.0" fill="#3ecf8e" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY BUY</text><polyline points="8,124 32,80 54,112 84,14 98,40 110,26 124,60 134,46 150,86" fill="none" stroke="#eceef1" stroke-width="2" stroke-linejoin="round"/><text x="185" y="62" fill="#9aa1ab" font-size="10" text-anchor="middle">sideway</text></svg><p class="tdesc">Harga bergerak dalam julat. SELL di kotak atas (puncak), BUY di kotak bawah (lembah).</p></div>
+      <div class="type"><p class="lbl">Type 3 · Sideway besar · 3 kotak</p><svg viewBox="0 0 220 150" role="img" aria-label="Rajah entry Type 3"><rect x="104" y="6" width="86" height="16" rx="2" fill="#ff6b6b" fill-opacity=".16" stroke="#ff6b6b"/><text x="147.0" y="14.0" fill="#ff6b6b" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY SELL</text><rect x="70" y="92" width="118" height="14" rx="2" fill="#3ecf8e" fill-opacity=".16" stroke="#3ecf8e"/><text x="129.0" y="99.0" fill="#3ecf8e" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY</text><rect x="58" y="122" width="128" height="14" rx="2" fill="#3ecf8e" fill-opacity=".16" stroke="#3ecf8e"/><text x="122.0" y="129.0" fill="#3ecf8e" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">ENTRY BUY</text><polyline points="4,142 28,82 42,102 52,92 66,130 80,92 88,100 110,14 124,38 134,26 148,60 162,44 182,92 210,38" fill="none" stroke="#eceef1" stroke-width="2" stroke-linejoin="round"/><text x="204" y="112" fill="#9aa1ab" font-size="10" text-anchor="middle">sideway</text></svg><p class="tdesc">Julat lebih besar dengan tiga kotak: atas, tengah (base sebelum naik) dan bawah. Entry di kotak yang disentuh.</p></div>
+      <div class="type"><p class="lbl">Type 4 · Long range · tak break HL</p><svg viewBox="0 0 220 150" role="img" aria-label="Rajah entry Type 4"><polyline points="14,8 32,108 54,82 66,138 96,50 102,72 108,60 113,90 118,78 130,110" fill="none" stroke="#eceef1" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="111" x2="56" y2="111" stroke="#eceef1" stroke-width="2"/><text x="34.0" y="124" fill="#9aa1ab" font-size="9" text-anchor="middle">break</text><line x1="40" y1="82" x2="90" y2="82" stroke="#eceef1" stroke-width="2"/><text x="65.0" y="76" fill="#9aa1ab" font-size="9" text-anchor="middle">break</text><line x1="24" y1="50" x2="110" y2="50" stroke="#ff6b6b" stroke-width="1.5"/><path d="M106 46 L112 50 L106 54" fill="none" stroke="#ff6b6b" stroke-width="1.5"/><text x="60" y="44" fill="#ff6b6b" font-size="9" text-anchor="middle">tak break HL</text><line x1="140" y1="96" x2="172" y2="140" stroke="#ff6b6b" stroke-width="1.5"/><path d="M165 138 L173 142 L174 133" fill="none" stroke="#ff6b6b" stroke-width="1.5"/><text x="178" y="92" fill="#9aa1ab" font-size="10" text-anchor="middle">long range</text></svg><p class="tdesc">Harga break dua kali tapi gagal break HL, kemudian bergerak jauh searah (long range). Entry selepas kegagalan itu.</p></div>
+    </div>
+    <h2 style="margin-top:18px">PRESTASI IKUT JENIS</h2>
+    <div class="tw"><table><thead><tr><th>Jenis</th><th class="n">Signal</th><th class="n">Win</th><th class="n">Loss</th><th class="n">Win rate</th><th class="n">Pips</th></tr></thead><tbody id="jrows"></tbody></table></div>
+  </section>
+
   <section class="card">
     <div class="head"><h2 id="history">HISTORY</h2><span class="note admin" style="margin:0">Tukar keputusan terus dalam jadual</span></div>
     <div class="tw">
@@ -147,6 +165,7 @@ h2{scroll-margin-top:14px}
   <div class="form">
     <label>Arah<select id="f-arah"><option>SELL</option><option>BUY</option></select></label>
     <label>Setup<select id="f-setup"><option>Reversal</option><option>Continuation</option></select></label>
+    <label class="full">Jenis entry<select id="f-jenis"><option value="1">Type 1 · Break M1</option><option value="2">Type 2 · Sideway M1</option><option value="3">Type 3 · Sideway besar</option><option value="4">Type 4 · Long range</option></select></label>
     <label class="full">Harga entry<input id="f-entry" type="number" inputmode="decimal" step="0.01" placeholder="cth 4102.30"></label>
     <label>Paras BREAK (pilihan)<input id="f-break" type="number" inputmode="decimal" step="0.01"></label>
     <label>HH / LL (pilihan)<input id="f-puncak" type="number" inputmode="decimal" step="0.01"></label>
@@ -228,6 +247,15 @@ function render(){
   drawRing(wr);
   const l = all[0];
   ['arah','setup','masa','status'].forEach((k) => $('l-' + k).textContent = l ? l[k] : '—');
+  $('l-jenis').textContent = l && l.jenis ? 'Type ' + l.jenis : '—';
+  const jb = $('jrows'); jb.replaceChildren();
+  ['1','2','3','4',''].forEach((j) => {
+    const g = all.filter((s) => String(s.jenis || '') === j); if (!j && !g.length) return;
+    const d = g.filter((s) => s.status in PIPS), w = d.filter((s) => s.status.startsWith('WIN')).length, pp = d.reduce((a,s) => a + PIPS[s.status], 0);
+    const tr = document.createElement('tr');
+    [j ? 'Type ' + j : 'Belum ditetapkan', g.length, w, d.length - w, d.length ? Math.round(w / d.length * 1000) / 10 + '%' : '—', d.length ? signed(pp) : '—'].forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i) td.className = 'n'; if (i === 5 && d.length) td.classList.add(pp >= 0 ? 'ok' : 'bad'); tr.appendChild(td); });
+    jb.appendChild(tr);
+  });
   ['entry','sl','tp1','tp2','tp3'].forEach((k) => $('l-' + k).textContent = l ? f2(l[k]) : '—');
   stCls($('l-status'), l && l.status); arCls($('l-arah'), l && l.arah);
   if (!all.find((s) => s.id === sel)) sel = l ? l.id : null;
@@ -236,7 +264,7 @@ function render(){
   all.forEach((s) => {
     const tr = document.createElement('tr'); if (s.id === sel) tr.classList.add('sel');
     const p = s.status in PIPS ? PIPS[s.status] : null;
-    const cells = ['📈', s.masa, s.arah, s.setup, f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
+    const cells = ['📈', s.masa, s.arah, (s.setup || '') + (s.jenis ? ' · T' + s.jenis : ''), f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
     cells.forEach((v, i) => {
       const td = document.createElement('td');
       if (i === 6 && !ADMIN){ const sp = document.createElement('span'); sp.textContent = s.status; stCls(sp, s.status); td.appendChild(sp); }
@@ -257,7 +285,7 @@ function render(){
     tb.appendChild(tr);
   });
   const cur = all.find((s) => s.id === sel);
-  $('picked').textContent = cur ? 'Signal dipilih: ' + cur.arah + ' ' + f2(cur.entry) + ' · ' + (cur.setup||'') + ' · ' + (cur.masa||'') + ' · ' + cur.status : '';
+  $('picked').textContent = cur ? 'Signal dipilih: ' + cur.arah + ' ' + f2(cur.entry) + ' · ' + (cur.setup||'') + (cur.jenis ? ' · Type ' + cur.jenis : '') + ' · ' + (cur.masa||'') + ' · ' + cur.status : '';
   drawLine($('c-line'), cur); drawCandle($('c-candle'), cur);
 }
 
@@ -363,7 +391,7 @@ $('f-save').addEventListener('click', () => {
   const arah = $('f-arah').value, k = arah === 'SELL' ? 1 : -1, r2 = (v) => Math.round(v * 100) / 100;
   const now = new Date(), pad = (v) => String(v).padStart(2, '0');
   const s = {id:'s' + now.getTime(), masa: now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()),
-    arah:arah, setup:$('f-setup').value, entry:r2(E), sl:r2(E + 6*k), tp1:r2(E - 4*k), tp2:r2(E - 8*k), tp3:r2(E - 10*k), status:'MENUNGGU'};
+    arah:arah, setup:$('f-setup').value, jenis:$('f-jenis').value, entry:r2(E), sl:r2(E + 6*k), tp1:r2(E - 4*k), tp2:r2(E - 8*k), tp3:r2(E - 10*k), status:'MENUNGGU'};
   [['break_level','f-break'],['puncak','f-puncak'],['kotak_atas','f-ka'],['kotak_bawah','f-kb']].forEach((p) => { const v = num($(p[1]).value); if (v != null) s[p[0]] = v; });
   data.push(s); sel = s.id; save(); render(); $('d-add').close(); toast('Signal ditambah');
   ['f-entry','f-break','f-puncak','f-ka','f-kb'].forEach((i) => $(i).value = '');
