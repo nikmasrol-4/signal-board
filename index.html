@@ -64,6 +64,8 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .sync{font-size:12px;margin:6px 0 0;color:var(--mut)}
 .sync.ok{color:var(--ok)}.sync.bad{color:var(--warn)}
 body.client .admin{display:none!important}
+.picked{font-size:13px;color:var(--warn);margin:8px 0 0;font-weight:600}
+h2{scroll-margin-top:14px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -98,8 +100,9 @@ body.client .admin{display:none!important}
   </section>
 
   <section class="card">
-    <h2>CARTA SETUP</h2>
-    <p class="note" style="margin-top:6px">Tekan baris dalam History untuk tukar signal. Candle disurih daripada screenshot (anggaran ±0.20).</p>
+    <div class="head"><h2 id="carta">CARTA SETUP</h2><button class="btn2" id="b-back" style="padding:6px 12px;font-size:12px" hidden>↓ Kembali ke History</button></div>
+    <p class="picked" id="picked"></p>
+    <p class="note" style="margin-top:6px">Tekan mana-mana signal dalam History untuk lihat cartanya di sini. Candle disurih daripada screenshot (anggaran ±0.20).</p>
     <div class="charts">
       <div><p class="lbl" style="margin-top:10px">Line chart</p><div class="chart" id="c-line"></div></div>
       <div><p class="lbl" style="margin-top:10px">Candle</p><div class="chart" id="c-candle"></div></div>
@@ -120,10 +123,10 @@ body.client .admin{display:none!important}
   </section>
 
   <section class="card">
-    <div class="head"><h2>HISTORY</h2><span class="note admin" style="margin:0">Tukar keputusan terus dalam jadual</span></div>
+    <div class="head"><h2 id="history">HISTORY</h2><span class="note admin" style="margin:0">Tukar keputusan terus dalam jadual</span></div>
     <div class="tw">
       <table>
-        <thead><tr><th>Masa</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
+        <thead><tr><th></th><th>Masa</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -229,15 +232,15 @@ function render(){
   stCls($('l-status'), l && l.status); arCls($('l-arah'), l && l.arah);
   if (!all.find((s) => s.id === sel)) sel = l ? l.id : null;
   const tb = $('rows'); tb.replaceChildren();
-  if (!all.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 7; td.textContent = 'Belum ada signal. Tekan + Signal untuk tambah.'; tr.appendChild(td); tb.appendChild(tr); }
+  if (!all.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.textContent = 'Belum ada signal. Tekan + Signal untuk tambah.'; tr.appendChild(td); tb.appendChild(tr); }
   all.forEach((s) => {
     const tr = document.createElement('tr'); if (s.id === sel) tr.classList.add('sel');
     const p = s.status in PIPS ? PIPS[s.status] : null;
-    const cells = [s.masa, s.arah, s.setup, f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
+    const cells = ['📈', s.masa, s.arah, s.setup, f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
     cells.forEach((v, i) => {
       const td = document.createElement('td');
-      if (i === 5 && !ADMIN){ const sp = document.createElement('span'); sp.textContent = s.status; stCls(sp, s.status); td.appendChild(sp); }
-      else if (i === 5){
+      if (i === 6 && !ADMIN){ const sp = document.createElement('span'); sp.textContent = s.status; stCls(sp, s.status); td.appendChild(sp); }
+      else if (i === 6){
         const sl = document.createElement('select'); sl.className = 'st';
         STATUSES.forEach((o) => sl.appendChild(new Option(o, o, false, o === s.status)));
         stCls(sl, s.status);
@@ -245,15 +248,16 @@ function render(){
         sl.addEventListener('change', () => { s.status = sl.value; save(); render(); toast('Keputusan dikemas kini'); });
         td.appendChild(sl);
       } else td.textContent = v == null ? '—' : v;
-      if (i >= 3 && i !== 5) td.className = 'n';
-      if (i === 1) arCls(td, s.arah);
-      if (i === 6 && p != null) td.classList.add(p > 0 ? 'ok' : 'bad');
+      if (i >= 4 && i !== 6) td.className = 'n';
+      if (i === 2) arCls(td, s.arah);
+      if (i === 7 && p != null) td.classList.add(p > 0 ? 'ok' : 'bad');
       tr.appendChild(td);
     });
-    tr.addEventListener('click', () => { sel = s.id; render(); });
+    tr.addEventListener('click', () => { sel = s.id; render(); $('b-back').hidden = false; $('carta').scrollIntoView({behavior:'smooth', block:'start'}); });
     tb.appendChild(tr);
   });
   const cur = all.find((s) => s.id === sel);
+  $('picked').textContent = cur ? 'Signal dipilih: ' + cur.arah + ' ' + f2(cur.entry) + ' · ' + (cur.setup||'') + ' · ' + (cur.masa||'') + ' · ' + cur.status : '';
   drawLine($('c-line'), cur); drawCandle($('c-candle'), cur);
 }
 
@@ -403,6 +407,7 @@ sync(); setInterval(sync, 30000);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('b-sync').addEventListener('click', () => { $('sync').textContent = 'Menyemak…'; sync(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+$('b-back').addEventListener('click', () => { $('b-back').hidden = true; $('history').scrollIntoView({behavior:'smooth', block:'start'}); });
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 150); });
 render();
 })();
