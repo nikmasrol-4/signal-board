@@ -80,6 +80,11 @@ details.ref summary::-webkit-details-marker{display:none}
 .ref-hint{color:var(--mut);font-size:12px;font-weight:500;letter-spacing:0;flex:1}
 .ref-tog::after{content:'Buka ▾';color:var(--acc);font-size:12px;font-weight:600;letter-spacing:0}
 details.ref[open] .ref-tog::after{content:'Tutup ▴'}
+.embed-only{display:none}
+body.embed{padding:8px 8px 12px}
+body.embed .embed-only{display:block}
+body.embed .wrap > *:not(#carta-card), body.embed .fab, body.embed #b-back, body.embed #carta-card .note{display:none!important}
+body.embed #carta-card{border:0;padding:6px;background:transparent}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -114,7 +119,8 @@ details.ref[open] .ref-tog::after{content:'Tutup ▴'}
     <p class="note">MENUNGGU = entry hanya sah bila harga kembali ke kotak R1/S1. TP untuk merekod keputusan dalam history.</p>
   </section>
 
-  <section class="card">
+  <section class="card" id="carta-card">
+    <select id="sigsel" class="embed-only" aria-label="Pilih signal" style="width:100%;margin-bottom:10px"></select>
     <div class="head"><h2 id="carta">CARTA SETUP</h2><button class="btn2" id="b-back" style="padding:6px 12px;font-size:12px" hidden>↓ Kembali ke History</button></div>
     <p class="picked" id="picked"></p>
     <p class="note" style="margin-top:6px">Tekan mana-mana signal dalam History untuk lihat cartanya di sini.<span class="admin"> Candle disurih daripada screenshot (anggaran ±0.20).</span></p>
@@ -208,8 +214,11 @@ const PIPS = {'WIN TP1':40,'WIN TP2':80,'WIN TP3':100,'LOSS':-60};
 const STATUSES = ['MENUNGGU','WIN TP1','WIN TP2','WIN TP3','LOSS','BATAL'];
 const NS = 'http://www.w3.org/2000/svg';
 let data, sel = null;
+const EMBED = new URLSearchParams(location.search).has('embed');
 let ADMIN = false;
 try { if (location.hash === '#admin') localStorage.setItem(KEY + '_admin', '1'); if (location.hash === '#client') localStorage.removeItem(KEY + '_admin'); ADMIN = localStorage.getItem(KEY + '_admin') === '1'; } catch(e){}
+if (EMBED) ADMIN = true;
+if (EMBED) document.body.classList.add('embed');
 if (!ADMIN) document.body.classList.add('client');
 
 let deleted = [];
@@ -300,6 +309,7 @@ function render(){
     tb.appendChild(tr);
   });
   const cur = all.find((s) => s.id === sel);
+  if (EMBED) { const ss = $('sigsel'); ss.replaceChildren(); all.forEach((s) => ss.appendChild(new Option(s.masa + ' · ' + s.arah + ' ' + f2(s.entry) + (s.jenis ? ' · T' + s.jenis : '') + ' · ' + s.status, s.id, false, s.id === sel))); ss.onchange = () => { sel = ss.value; render(); }; }
   $('picked').textContent = cur ? 'Signal dipilih: ' + cur.arah + ' ' + f2(cur.entry) + ' · ' + (cur.setup||'') + (cur.jenis ? ' · Type ' + cur.jenis : '') + ' · ' + (cur.masa||'') + ' · ' + cur.status : '';
   drawLine($('c-line'), cur); drawCandle($('c-candle'), cur);
 }
@@ -476,7 +486,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123002542';
+const APP_VERSION = '20261123003404';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
