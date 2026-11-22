@@ -573,6 +573,9 @@ function announce(sfx, text){
   }));
 }
 function speak(text){ announce(null, text); }
+// Bercakap terus dalam tekanan jari (telefon hanya benarkan suara pertama di sini)
+function speakNow(text){ if (!CAN_SPEAK) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text), v = pickVoice();
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB'; u.rate = 0.95; speechSynthesis.speak(u); } catch(e){} }
 function statsLine(){ const done = data.filter((s) => s.status in PIPS), w = done.filter((s) => s.status.startsWith('WIN')).length, l = done.length - w, p = done.reduce((a, s) => a + PIPS[s.status], 0);
   if (!done.length) return ''; return `Win rate is now ${Math.round(w / done.length * 100)} percent, with ${w} ${w === 1 ? 'win' : 'wins'} and ${l} ${l === 1 ? 'loss' : 'losses'}. Total ${p >= 0 ? 'plus' : 'minus'} ${Math.abs(p)} pips.`; }
 function sayNew(s){ return `Attention please. New ${DIR(s.arah)} signal for Gold. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. Entry price, ${NUM(s.entry)}. Stop loss at ${NUM(s.sl)}, that is sixty pips. Take profit one at ${NUM(s.tp1)}, take profit two at ${NUM(s.tp2)}, and take profit three at ${NUM(s.tp3)}. Wait for price to come back to the entry zone before you enter. Always manage your risk.`; }
@@ -614,9 +617,11 @@ async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextE
   document.body.classList.add('locked');
   $('g-start').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel();
     $('g-start').hidden = true;
-    if (authed) { $('g-title').textContent = 'WELCOME BACK'; announce('boot', 'Welcome back, sir. This is R eleven. All systems are online.'); setTimeout(openBoard, 600); }
-    else { $('g-title').textContent = 'PLEASE INSERT YOUR PASSWORD'; $('g-form').hidden = false; setTimeout(() => $('g-pass').focus(), 50);
-      announce('boot', 'Welcome aboard, sir. This is R eleven. Please insert your password.'); } });
+    SFX.boot();
+    if (authed) { $('g-title').textContent = 'WELCOME BACK'; speakNow('Welcome back, sir. This is R eleven. All systems are online.'); setTimeout(openBoard, 900); }
+    else { $('g-title').textContent = 'PLEASE INSERT YOUR PASSWORD'; $('g-form').hidden = false;
+      speakNow('Welcome aboard, sir. This is R eleven. Please insert your password.'); } });
+  $('g-pass').addEventListener('focus', () => { if (!$('g-pass').dataset.said) { $('g-pass').dataset.said = '1'; } });
   $('g-form').addEventListener('submit', async (e) => { e.preventDefault();
     const h = await sha($('g-pass').value.trim().toLowerCase());
     if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); } catch(e){} $('g-err').textContent = '';
@@ -643,7 +648,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123013220';
+const APP_VERSION = '20261123013649';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
