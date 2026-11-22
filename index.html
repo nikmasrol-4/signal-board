@@ -116,6 +116,11 @@ body.locked{overflow:hidden}
 .hs b{display:block;margin:2px 0 4px;font-size:15px}
 .hs p{margin:0;color:var(--mut);font-size:13px;line-height:1.5}
 .hs-visi{margin:12px 0 0;padding:12px;border-radius:10px;background:#162131;border:1px solid #2b4d7a;color:#cfe4ff;font-size:13.5px;line-height:1.5}
+body.client{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.client svg,body.client img{-webkit-user-drag:none;user-drag:none}
+body.client .wm{position:relative;overflow:hidden}
+body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Ctext x='10' y='80' transform='rotate(-22 130 70)' fill='white' font-family='Arial' font-size='15' font-weight='700'%3ER11 SIGNAL %C2%B7 DILARANG KONGSI%3C/text%3E%3C/svg%3E")}
+@media print{body.client .wrap{display:none!important}body.client::before{content:'Dilarang cetak.';display:block;padding:40px;font-size:20px}}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -141,7 +146,7 @@ body.locked{overflow:hidden}
     <div class="card tap" id="card-loss"><p class="lbl">Loss</p><p class="big bad" id="k-loss">0</p></div>
   </div>
 
-  <section class="card">
+  <section class="card wm" id="sig-card">
     <div class="head"><h2>SIGNAL TERKINI</h2><span style="display:flex;gap:8px;align-items:center"><button class="btn2" id="b-say-sig" style="padding:4px 10px;font-size:12px">🔊 Dengar</button><span class="pill" id="l-status">—</span></span></div>
     <p class="sig tap" id="sig-line"><span id="l-arah">—</span> <span id="l-entry">—</span></p>
     <dl class="levels">
@@ -156,7 +161,7 @@ body.locked{overflow:hidden}
     <p class="note">MENUNGGU = entry hanya sah bila harga kembali ke kotak R1/S1. TP untuk merekod keputusan dalam history.</p>
   </section>
 
-  <section class="card" id="analisis-card">
+  <section class="card wm" id="analisis-card">
     <div class="head"><h2>ANALISIS MARKET</h2><span class="pill" id="ana-tf">—</span></div>
     <p class="note" id="ana-meta" style="margin-top:6px"></p>
     <div class="chart" id="c-ana" style="margin-top:8px"></div>
@@ -164,7 +169,7 @@ body.locked{overflow:hidden}
     <button class="btn2" id="b-say-ana" style="padding:6px 12px;font-size:12px;margin-top:10px">🔊 Dengar analisis</button>
   </section>
 
-  <section class="card" id="carta-card">
+  <section class="card wm" id="carta-card">
     <select id="sigsel" class="embed-only" aria-label="Pilih signal" style="width:100%;margin-bottom:10px"></select>
     <div class="head"><h2 id="carta">CARTA SETUP</h2><button class="btn2" id="b-back" style="padding:6px 12px;font-size:12px" hidden>↓ Kembali ke History</button></div>
     <p class="picked" id="picked"></p>
@@ -271,9 +276,11 @@ const PIPS = {'WIN TP1':40,'WIN TP2':80,'WIN TP3':100,'LOSS':-60};
 const STATUSES = ['MENUNGGU','WIN TP1','WIN TP2','WIN TP3','LOSS','BATAL'];
 const NS = 'http://www.w3.org/2000/svg';
 let data, sel = null;
-const EMBED = new URLSearchParams(location.search).has('embed');
+const EMBED_HASH = 'b56860ceebf4350d15b230bf14a4aed623cb8620769fd63cfa7a63f0744fff16';
+const QP = new URLSearchParams(location.search);
+const EMBED = QP.has('embed') && sha(QP.get('embed') || '') === EMBED_HASH;
 let ADMIN = false;
-try { if (location.hash === '#admin') localStorage.setItem(KEY + '_admin', '1'); if (location.hash === '#client') localStorage.removeItem(KEY + '_admin'); ADMIN = localStorage.getItem(KEY + '_admin') === '1'; } catch(e){}
+try { localStorage.removeItem(KEY + '_admin'); ADMIN = sessionStorage.getItem(KEY + '_role') === 'admin'; } catch(e){}
 if (EMBED) ADMIN = true;
 if (EMBED) document.body.classList.add('embed');
 if (!ADMIN) document.body.classList.add('client');
@@ -709,7 +716,8 @@ $('b-say-ana').addEventListener('click', () => { if (CAN_SPEAK) speechSynthesis.
 $('v-name').addEventListener('change', () => { try { localStorage.setItem(KEY + '_vname', $('v-name').value); } catch(e){} if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, 'Hello sir. This is R eleven. This is my new voice.'); });
 voiceUI();
 // ---- pintu masuk R11 ----
-const PASS_HASH = ['147b1218f95a7b6339380930a2abb8d727ed469def3950223cae8324ad00a609'];
+const PASS_HASH = ['147b1218f95a7b6339380930a2abb8d727ed469def3950223cae8324ad00a609'];   // client
+const ADMIN_HASH = 'dc77e85e62bb02fccbfff62a6ac423acbca7964d7c030ee72140e5df0376af7d';   // admin
 let UNLOCKED = false;
 function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tekanan ENTER
   const K = [], H = []; let p = 2;
@@ -739,11 +747,18 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
       speakNow('Welcome aboard, sir. This is R eleven. Please insert your password.'); } });
   $('g-form').addEventListener('submit', (e) => { e.preventDefault(); ac();
     const h = sha($('g-pass').value.trim().toLowerCase());
-    if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); } catch(e){} $('g-err').textContent = '';
+    if (h === ADMIN_HASH) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'admin'); } catch(e){} $('g-err').textContent = '';
+      ADMIN = true; document.body.classList.remove('client'); render();
+      SFX.ok(); speakNow('Access granted. Welcome aboard, captain. Admin mode is active.'); openBoard(); }
+    else if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'client'); } catch(e){} $('g-err').textContent = '';
       SFX.ok(); speakNow('Access granted. Welcome aboard, sir. All systems are online. Have a profitable day.'); openBoard(); }
     else { $('g-err').textContent = 'Password salah. Cuba lagi.'; $('g-pass').value = ''; SFX.err(); speakNow('Access denied. Please try again.'); } });
   function openBoard(){ UNLOCKED = true; g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 600); }
 })();
+// ---- halang salin (mod client) ----
+['contextmenu', 'dragstart', 'copy', 'cut'].forEach((ev) => document.addEventListener(ev, (e) => { if (!ADMIN && !e.target.closest('input,textarea')) e.preventDefault(); }));
+document.addEventListener('keydown', (e) => { if (ADMIN) return; const k = (e.key || '').toLowerCase();
+  if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && ['s','u','p','c'].includes(k)) || ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i','j','c'].includes(k))) { e.preventDefault(); toast('Kandungan R11 dilindungi'); } });
 save();
 async function sync(){
   try {
@@ -763,7 +778,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123072655';
+const APP_VERSION = '20261123075119';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
