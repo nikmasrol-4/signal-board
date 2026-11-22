@@ -112,7 +112,7 @@ body.locked{overflow:hidden}
 <div class="wrap">
   <header>
     <h1>Board Signal XAUUSD</h1>
-    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> </span>
+    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> <select id="v-name" class="noembed" aria-label="Pilih suara" style="padding:4px 8px;font-size:12px;margin-top:6px;max-width:230px" hidden></select> </span>
     <p class="sub">Strategi R1/S1 · Reversal &amp; Continuation · SL 60 pips · Satu trade pada satu masa</p>
   </header>
 
@@ -546,9 +546,22 @@ const VKEY = KEY + '_voice', SKEY = KEY + '_spoken';
 let VOICE_ON = true, spoken = null; const VLANG = 'en';
 try { VOICE_ON = !EMBED && localStorage.getItem(VKEY) !== '0'; spoken = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){}
 const CAN_SPEAK = 'speechSynthesis' in window;
-function pickVoice(){ if (!CAN_SPEAK) return null; const vs = speechSynthesis.getVoices();
-  for (const p of ['en-gb', 'en-us', 'en']) { const v = vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p) && /female|zira|aria|jenny|libby|sonia|samantha|serena|kate|google uk english female/i.test(x.name)) || vs.find((x) => x.lang.toLowerCase().replace('_', '-').startsWith(p)); if (v) return v; }
-  return null; }
+function voiceScore(v){ const n = v.name.toLowerCase(), l = v.lang.toLowerCase().replace('_', '-');
+  let s = 0;
+  if (/natural|neural|online/.test(n)) s += 100;          // Microsoft Edge: suara AI semula jadi
+  if (/premium|enhanced|siri/.test(n)) s += 80;            // iPhone / Mac: suara dimuat turun
+  if (/google/.test(n)) s += 50;                           // Chrome / Android
+  if (/aria|jenny|sonia|libby|ava|serena|samantha|kate|female|emma|michelle/.test(n)) s += 15;
+  if (/compact|espeak|zira desktop|david desktop/.test(n)) s -= 40;
+  if (l === 'en-gb') s += 5; if (l === 'en-us') s += 4;
+  return s; }
+function englishVoices(){ return CAN_SPEAK ? speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en')).sort((a, b) => voiceScore(b) - voiceScore(a)) : []; }
+function pickVoice(){ const vs = englishVoices(); let want = null; try { want = localStorage.getItem(KEY + '_vname'); } catch(e){}
+  return (want && vs.find((v) => v.name === want)) || vs[0] || null; }
+function fillVoices(){ const sel = $('v-name'); if (!sel) return; const vs = englishVoices(); if (!vs.length) { sel.hidden = true; return; }
+  const cur = pickVoice(); sel.hidden = false; sel.replaceChildren();
+  vs.forEach((v) => sel.appendChild(new Option((voiceScore(v) >= 80 ? '★ ' : '') + v.name.replace(/^Microsoft |^Google /, '') + ' (' + v.lang + ')', v.name, false, cur && v.name === cur.name))); }
+if (CAN_SPEAK) { speechSynthesis.onvoiceschanged = fillVoices; setTimeout(fillVoices, 300); setTimeout(fillVoices, 1500); }
 let chain = Promise.resolve();
 function announce(sfx, text){
   chain = chain.then(() => new Promise((res) => {
@@ -588,6 +601,7 @@ $('b-voice').addEventListener('click', () => { VOICE_ON = !VOICE_ON; try { local
   voiceUI(); if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); if (VOICE_ON) announce('ok', 'Voice on. You will hear new signals, take profits and stop losses.'); });
 $('b-say-sig').addEventListener('click', () => { if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, sayLatest()); });
 $('b-say-ana').addEventListener('click', () => { if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, sayAna()); });
+$('v-name').addEventListener('change', () => { try { localStorage.setItem(KEY + '_vname', $('v-name').value); } catch(e){} if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, 'Hello sir. This is R eleven. This is my new voice.'); });
 voiceUI();
 // ---- pintu masuk R11 ----
 const PASS_HASH = ['147b1218f95a7b6339380930a2abb8d727ed469def3950223cae8324ad00a609'];
@@ -629,7 +643,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123012447';
+const APP_VERSION = '20261123013220';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
