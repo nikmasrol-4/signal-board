@@ -523,7 +523,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123010823';
+const APP_VERSION = '20261123010834';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
@@ -535,6 +535,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 $('b-sync').addEventListener('click', () => { $('sync').textContent = 'Menyemak…'; sync(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { sync(); checkVersion(); } });
 $('b-back').addEventListener('click', () => { $('b-back').hidden = true; $('history').scrollIntoView({behavior:'smooth', block:'start'}); });
+if (EMBED && window.parent !== window) { const post = () => { try { window.parent.postMessage({sigboard_h: document.documentElement.scrollHeight}, '*'); } catch(e){} }; setInterval(post, 1000); post(); }
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 150); });
 render();
 })();
