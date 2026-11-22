@@ -461,10 +461,17 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-sync(); setInterval(sync, 30000);
+const APP_VERSION = '20261122234810';
+async function checkVersion(){
+  if (location.protocol === 'file:') return;
+  try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
+    if (v && v !== APP_VERSION) { const k = KEY + '_reload'; if (sessionStorage.getItem(k) !== v) { sessionStorage.setItem(k, v); location.reload(); } } } catch(e){}
+}
+checkVersion();
+sync(); setInterval(() => { sync(); checkVersion(); }, 30000);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('b-sync').addEventListener('click', () => { $('sync').textContent = 'Menyemak…'; sync(); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { sync(); checkVersion(); } });
 $('b-back').addEventListener('click', () => { $('b-back').hidden = true; $('history').scrollIntoView({behavior:'smooth', block:'start'}); });
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 150); });
 render();
