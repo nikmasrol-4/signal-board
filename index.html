@@ -135,7 +135,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
 <div class="wrap">
   <header>
     <h1>Board Signal XAUUSD</h1>
-    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> <button class="btn2 noembed" id="b-periodic" style="padding:4px 10px;font-size:12px;margin-top:6px">⏱ Laporan 30s ON</button> <select id="v-name" class="noembed" aria-label="Pilih suara" style="padding:4px 8px;font-size:12px;margin-top:6px;max-width:230px" hidden></select> </span>
+    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2 noembed" id="b-logout" style="padding:4px 10px;font-size:12px;margin-top:6px">🔒 Tukar akaun</button> <button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> <button class="btn2 noembed" id="b-periodic" style="padding:4px 10px;font-size:12px;margin-top:6px">⏱ Laporan 30s ON</button> <select id="v-name" class="noembed" aria-label="Pilih suara" style="padding:4px 8px;font-size:12px;margin-top:6px;max-width:230px" hidden></select> </span>
     <p class="sub">Strategi R1/S1 · Reversal &amp; Continuation · SL 60 pips · Satu trade pada satu masa</p>
   </header>
 
@@ -737,7 +737,7 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
 (function gate(){
   const g = $('gate'); if (!g) return;
   if (EMBED) { g.remove(); UNLOCKED = true; return; }
-  let authed = false; try { authed = sessionStorage.getItem(KEY + '_auth') === '1'; } catch(e){}
+  let authed = false; try { authed = sessionStorage.getItem(KEY + '_auth') === '1' && !!sessionStorage.getItem(KEY + '_role'); } catch(e){}
   document.body.classList.add('locked');
   $('g-start').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel();
     $('g-start').hidden = true;
@@ -748,7 +748,7 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
   $('g-form').addEventListener('submit', (e) => { e.preventDefault(); ac();
     const h = sha($('g-pass').value.trim().toLowerCase());
     if (h === ADMIN_HASH) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'admin'); } catch(e){} $('g-err').textContent = '';
-      ADMIN = true; document.body.classList.remove('client'); render();
+      ADMIN = true; document.body.classList.remove('client'); render(); roleUI();
       SFX.ok(); speakNow('Access granted. Welcome aboard, captain. Admin mode is active.'); openBoard(); }
     else if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'client'); } catch(e){} $('g-err').textContent = '';
       SFX.ok(); speakNow('Access granted. Welcome aboard, sir. All systems are online. Have a profitable day.'); openBoard(); }
@@ -759,6 +759,9 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
 ['contextmenu', 'dragstart', 'copy', 'cut'].forEach((ev) => document.addEventListener(ev, (e) => { if (!ADMIN && !e.target.closest('input,textarea')) e.preventDefault(); }));
 document.addEventListener('keydown', (e) => { if (ADMIN) return; const k = (e.key || '').toLowerCase();
   if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && ['s','u','p','c'].includes(k)) || ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i','j','c'].includes(k))) { e.preventDefault(); toast('Kandungan R11 dilindungi'); } });
+$('b-logout').addEventListener('click', () => { try { sessionStorage.removeItem(KEY + '_auth'); sessionStorage.removeItem(KEY + '_role'); } catch(e){} location.reload(); });
+function roleUI(){ const b = $('b-logout'); if (b) b.textContent = (ADMIN ? '👑 Admin' : '👤 Client') + ' · Tukar akaun'; }
+roleUI();
 save();
 async function sync(){
   try {
@@ -778,7 +781,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123075119';
+const APP_VERSION = '20261123083048';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
