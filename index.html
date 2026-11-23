@@ -130,7 +130,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
   <div class="glogo">R11</div>
   <p class="gtitle" id="g-title">R11 SYSTEM STANDBY</p>
   <button class="gbtn" id="g-start">TAP TO START</button>
-  <form id="g-form" hidden><input id="g-pass" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button class="gbtn" type="submit">ENTER</button><p class="gerr" id="g-err"></p></form>
+  <form id="g-form" hidden><input id="g-pass" type="password" placeholder="Password / PIN" inputmode="text" autocomplete="current-password" aria-label="Password"><button class="gbtn" type="submit">ENTER</button><p class="gerr" id="g-err"></p></form>
 </div></div>
 <div class="wrap">
   <header>
@@ -716,8 +716,8 @@ $('b-say-ana').addEventListener('click', () => { if (CAN_SPEAK) speechSynthesis.
 $('v-name').addEventListener('change', () => { try { localStorage.setItem(KEY + '_vname', $('v-name').value); } catch(e){} if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); announce(null, 'Hello sir. This is R eleven. This is my new voice.'); });
 voiceUI();
 // ---- pintu masuk R11 ----
-const PASS_HASH = ['147b1218f95a7b6339380930a2abb8d727ed469def3950223cae8324ad00a609'];   // client
-const ADMIN_HASH = 'dc77e85e62bb02fccbfff62a6ac423acbca7964d7c030ee72140e5df0376af7d';   // admin
+const PASS_HASH = ['5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5'];   // client
+const ADMIN_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';   // admin
 let UNLOCKED = false;
 function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tekanan ENTER
   const K = [], H = []; let p = 2;
@@ -781,7 +781,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261123170341';
+const APP_VERSION = '20261123171043';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
