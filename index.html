@@ -106,6 +106,8 @@ body.embed .noembed{display:none!important}
 .gpill #g-go{flex:none;height:42px;padding:0 18px;border-radius:999px;border:1.5px solid #4fb6ff;background:#0d3a5c;color:#e8f6ff;font-weight:800;letter-spacing:.12em;font-size:13px}
 #g-holo{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;mix-blend-mode:screen;transition:opacity .8s}
 .gate .gbox{z-index:2}
+.pairtag{display:inline-block;margin:10px 0 0;padding:4px 12px;border-radius:999px;border:1px solid #d4a83a;background:rgba(212,168,58,.12);color:#f3cf6a;font-weight:800;letter-spacing:.12em;font-size:13px}
+.pairc{color:#f3cf6a;font-weight:700}
 .gmute{position:absolute;top:14px;right:14px;z-index:2;background:rgba(0,0,0,.45);border:1px solid #2f5f86;color:#bfe6ff;border-radius:999px;padding:6px 12px;font-size:13px}
 .gate.out{opacity:0;pointer-events:none}
 body.locked{overflow:hidden}
@@ -168,6 +170,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
   <section class="card wm" id="sig-card">
     <div class="head"><h2>SIGNAL TERKINI</h2><span style="display:flex;gap:8px;align-items:center"><button class="btn2" id="b-say-sig" style="padding:4px 10px;font-size:12px">🔊 Dengar</button><span class="pill" id="l-status">—</span></span></div>
     <p class="note" id="board-empty" hidden style="margin:10px 0 0;font-size:14px;color:var(--warn)">Board kosong. Menunggu signal baru…</p>
+    <p class="pairtag" id="l-pair">🥇 XAUUSD · GOLD</p>
     <p class="sig tap" id="sig-line"><span id="l-arah">—</span> <span id="l-entry">—</span></p>
     <dl class="levels">
       <div><dt>SL</dt><dd id="l-sl">—</dd></div>
@@ -236,7 +239,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
     <div class="head"><h2 id="history">HISTORY <span id="hist-day" class="note" style="margin:0;font-size:11px;letter-spacing:.06em"></span></h2><span class="admin" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btnd" id="b-reset" style="padding:5px 10px;font-size:12px">🗑 Kosongkan board</button></span></div>
     <div class="tw">
       <table>
-        <thead><tr><th></th><th>Masa</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
+        <thead><tr><th></th><th>Masa</th><th>Pair</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -365,6 +368,7 @@ function render(){
   const l = all[0];
   ['arah','setup','masa','status'].forEach((k) => $('l-' + k).textContent = l ? l[k] : '—');
   $('l-jenis').textContent = l && l.jenis ? 'Type ' + l.jenis : '—';
+  { const pr = (l && l.pair) || 'XAUUSD'; $('l-pair').textContent = (pr === 'XAUUSD' ? '🥇 XAUUSD · GOLD' : '📊 ' + pr); $('l-pair').hidden = !l; }
   const jb = $('jrows'); jb.replaceChildren();
   ['1','2','3','4',''].forEach((j) => {
     const g = all.filter((s) => String(s.jenis || '') === j); if (!j && !g.length) return;
@@ -380,15 +384,15 @@ function render(){
   const H = histSorted();
   if (!H.find((s) => s.id === sel)) sel = l ? l.id : null;
   const tb = $('rows'); tb.replaceChildren();
-  if (!H.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.textContent = 'Belum ada signal.'; tr.appendChild(td); tb.appendChild(tr); }
+  if (!H.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 9; td.textContent = 'Belum ada signal.'; tr.appendChild(td); tb.appendChild(tr); }
   H.forEach((s) => {
     const tr = document.createElement('tr'); if (s.id === sel) tr.classList.add('sel');
     const p = s.status in PIPS ? PIPS[s.status] : null;
-    const cells = ['📈', s.masa, s.arah, (s.setup || '') + (s.jenis ? ' · T' + s.jenis : ''), f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
+    const cells = ['📈', s.masa, s.pair || 'XAUUSD', s.arah, (s.setup || '') + (s.jenis ? ' · T' + s.jenis : ''), f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
     cells.forEach((v, i) => {
       const td = document.createElement('td');
-      if (i === 6 && !ADMIN){ const sp = document.createElement('span'); sp.textContent = s.status; stCls(sp, s.status); td.appendChild(sp); }
-      else if (i === 6){
+      if (i === 7 && !ADMIN){ const sp = document.createElement('span'); sp.textContent = s.status; stCls(sp, s.status); td.appendChild(sp); }
+      else if (i === 7){
         const sl = document.createElement('select'); sl.className = 'st';
         STATUSES.forEach((o) => sl.appendChild(new Option(o, o, false, o === s.status)));
         stCls(sl, s.status);
@@ -396,9 +400,10 @@ function render(){
         sl.addEventListener('change', () => { s.status = sl.value; save(); render(); toast('Keputusan dikemas kini'); });
         td.appendChild(sl);
       } else td.textContent = v == null ? '—' : v;
-      if (i >= 4 && i !== 6) td.className = 'n';
-      if (i === 2) arCls(td, s.arah);
-      if (i === 7 && p != null) td.classList.add(p > 0 ? 'ok' : 'bad');
+      if (i >= 5 && i !== 7) td.className = 'n';
+      if (i === 3) arCls(td, s.arah);
+      if (i === 2) td.classList.add('pairc');
+      if (i === 8 && p != null) td.classList.add(p > 0 ? 'ok' : 'bad');
       tr.appendChild(td);
     });
     tr.addEventListener('click', () => { sel = s.id; render(); $('b-back').hidden = false; $('carta').scrollIntoView({behavior:'smooth', block:'start'}); });
@@ -903,7 +908,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124184542';
+const APP_VERSION = '20261124190706';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
