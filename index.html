@@ -816,7 +816,27 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
         o.putImageData(id, 0, 0); }
       l.setTransform(1, 0, 0, 1, 0, 0); l.clearRect(0, 0, lay.width, lay.height);
       l.setTransform(S * dpr, 0, 0, S * dpr, OX * dpr, OY * dpr); l.imageSmoothingQuality = 'high'; l.drawImage(off, BX, BY);
-      l.save(); l.shadowColor = 'rgba(40,170,255,.95)'; l.shadowBlur = 22 * S * dpr; l.strokeStyle = 'rgba(80,200,255,.55)'; l.lineWidth = 3; l.beginPath(); l.ellipse(GCX, GCY, GRX - 1, GRY - 1, 0, 0, 7); l.stroke(); l.restore();
+      l.save(); [[14,.06],[8,.12],[4,.25],[2,.6]].forEach(([w, al]) => { l.strokeStyle = 'rgba(70,195,255,' + al + ')'; l.lineWidth = w; l.beginPath(); l.ellipse(GCX, GCY, GRX - 1, GRY - 1, 0, 0, 7); l.stroke(); }); l.restore();
+      l.save(); l.globalCompositeOperation = 'lighter';
+      { const c0 = Math.cos(LA0), s0 = Math.sin(LA0), cr = Math.cos(RL), sr = Math.sin(RL);
+        const PJ = (la, lo) => { const ca = Math.cos(la), dl = lo - lon0, x1 = ca * Math.sin(dl), y1 = c0 * Math.sin(la) - s0 * ca * Math.cos(dl), z = s0 * Math.sin(la) + c0 * ca * Math.cos(dl); return [GCX + (x1 * cr - y1 * sr) * GRX, GCY - (x1 * sr + y1 * cr) * GRY, z]; };
+        l.lineWidth = 1 / (S * dpr) * 1.4; l.strokeStyle = 'rgba(90,200,255,.22)'; l.beginPath();
+        const line = (fn, nn) => { let pv = null; for (let k = 0; k <= nn; k++) { const q = fn(k / nn); if (pv && q[2] > 0 && pv[2] > 0) { l.moveTo(pv[0], pv[1]); l.lineTo(q[0], q[1]); } pv = q; } };
+        for (let mm = 0; mm < 18; mm++) line((u) => PJ(-Math.PI / 2 + u * Math.PI, mm * Math.PI / 9), 36);
+        for (let pp = -4; pp <= 4; pp++) line((u) => PJ(pp * Math.PI / 10, u * 2 * Math.PI), 72);
+        l.stroke(); }
+      if (!HOLO.fx) { const R = Math.random; HOLO.fx = { st: Array.from({length: 28}, () => ({ y: GCY + (R() - .5) * 2.25 * GRY, x: R(), len: 12 + R() * 80, sp: (R() < .5 ? -1 : 1) * (.015 + R() * .05), a: .25 + R() * .6, w: R() < .2 ? 3 : 1.6 })),
+        tw: Array.from({length: 22}, () => { const an = R() * 6.283, rr = Math.sqrt(R()) * .95; return { x: GCX + Math.cos(an) * rr * GRX, y: GCY + Math.sin(an) * rr * GRY, ph: R() * 50, sp: 400 + R() * 900 }; }) }; }
+      
+      HOLO.fx.st.forEach((s) => { const span = 2.9 * GRX, x0 = GCX - span / 2 + (((s.x + now / 1000 * s.sp) % 1 + 1) % 1) * span; const gg = l.createLinearGradient(x0, 0, x0 + s.len, 0);
+        gg.addColorStop(0, 'rgba(120,220,255,0)'); gg.addColorStop(.5, 'rgba(150,235,255,' + s.a + ')'); gg.addColorStop(1, 'rgba(120,220,255,0)'); l.strokeStyle = gg; l.lineWidth = s.w; l.beginPath(); l.moveTo(x0, s.y); l.lineTo(x0 + s.len, s.y); l.stroke(); });
+      HOLO.fx.tw.forEach((p) => { const a = Math.pow(Math.max(0, Math.sin(now / p.sp + p.ph)), 10); if (a < .02) return; l.fillStyle = 'rgba(220,250,255,' + a + ')'; l.beginPath(); l.arc(p.x, p.y, 2.2 + 2 * a, 0, 7); l.fill();
+        l.strokeStyle = 'rgba(180,240,255,' + a * .8 + ')'; l.lineWidth = 1.2; l.beginPath(); l.moveTo(p.x - 9 * a, p.y); l.lineTo(p.x + 9 * a, p.y); l.moveTo(p.x, p.y - 9 * a); l.lineTo(p.x, p.y + 9 * a); l.stroke(); });
+      l.lineWidth = 2.4; l.strokeStyle = 'rgba(110,215,255,.75)'; const ra = now / 9000;
+      l.beginPath(); l.ellipse(GCX, GCY, GRX * 1.07, GRY * 1.07, 0, Math.PI * 1.05 + ra, Math.PI * 1.45 + ra); l.stroke();
+      l.lineWidth = 1.4; l.strokeStyle = 'rgba(110,215,255,.45)'; l.beginPath(); l.ellipse(GCX, GCY, GRX * 1.12, GRY * 1.12, 0, -Math.PI * .35 - ra * 1.3, -Math.PI * .05 - ra * 1.3); l.stroke();
+      l.setLineDash([3, 7]); l.beginPath(); l.ellipse(GCX, GCY, GRX * 1.17, GRY * 1.17, 0, Math.PI * .55 + ra * .7, Math.PI * .95 + ra * .7); l.stroke(); l.setLineDash([]);
+      l.restore();
       x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
       if (!done && now > nextGlitch && !HOLO.stopping) { glitchUntil = now + 160 + Math.random() * 300; nextGlitch = now + 4000 + Math.random() * 6000; }
       if (now < glitchUntil) { const Hh = cv.height, Ww = cv.width; x.globalAlpha = .6 + Math.random() * .4;
@@ -883,7 +903,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124183659';
+const APP_VERSION = '20261124184542';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
