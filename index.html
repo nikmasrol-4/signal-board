@@ -203,7 +203,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
     <button class="btn2" id="b-say-ana" style="padding:6px 12px;font-size:12px;margin-top:10px">🔊 Dengar analisis</button>
   </section>
 
-  <section class="card wm" id="rujukan-card">
+  <section class="card wm admin" id="rujukan-card">
     <div class="head"><h2>PAIR RUJUKAN</h2><span class="pill" id="ruj-tf">—</span></div>
     <p class="note" id="ruj-meta" style="margin-top:6px"></p>
     <p class="pairtag" id="ruj-kesan"></p>
@@ -1001,7 +1001,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124203754';
+const APP_VERSION = '20261124204412';
 let NEWVER = '';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
