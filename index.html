@@ -88,7 +88,12 @@ body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;backgroun
 .ana-list{margin:10px 0 0;padding-left:18px;color:var(--fg);font-size:14px;line-height:1.55}
 .ana-list li{margin:4px 0}
 body.embed .noembed{display:none!important}
-.gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#1f2630,#0d0f12 70%);transition:opacity .5s}
+.gate{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:#05080c url(gate-bg.jpg) center top/contain no-repeat;transition:opacity .8s}
+.gate::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(2,6,10,.85) 78%,#020509 100%);pointer-events:none}
+.gate .gbox{position:relative;margin-bottom:max(28px,env(safe-area-inset-bottom))}
+.gate .gbtn{background:rgba(6,30,45,.75);border-color:#4fb6ff;color:#bfe6ff;box-shadow:0 0 18px rgba(79,182,255,.45)}
+@media (min-aspect-ratio:1/1){.gate{align-items:center;justify-content:flex-end;background-position:30% center}.gate::before{background:linear-gradient(90deg,rgba(0,0,0,0) 55%,rgba(2,6,10,.8) 72%)}.gate .gbox{margin:0 9vw 0 0}}
+.gmute{position:absolute;top:14px;right:14px;z-index:2;background:rgba(0,0,0,.45);border:1px solid #2f5f86;color:#bfe6ff;border-radius:999px;padding:6px 12px;font-size:13px}
 .gate.out{opacity:0;pointer-events:none}
 body.locked{overflow:hidden}
 .gbox{display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px;width:min(360px,90vw)}
@@ -131,8 +136,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
 </style>
 </head>
 <body>
-<div class="gate" id="gate"><div class="gbox">
-  <div class="glogo">R11</div>
+<div class="gate" id="gate"><button class="gmute" id="g-mute" hidden>🔊 Muzik</button><audio id="g-music" src="gate-music.mp3" loop preload="auto"></audio><div class="gbox">
   <p class="gtitle" id="g-title">R11 SYSTEM STANDBY</p>
   <button class="gbtn" id="g-start">TAP TO START</button>
   <form id="g-form" hidden><input id="g-pass" type="password" placeholder="Password / PIN" inputmode="text" autocomplete="current-password" aria-label="Password"><button class="gbtn" type="submit">ENTER</button><p class="gerr" id="g-err"></p></form>
@@ -319,7 +323,8 @@ const f2 = (v) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-U
 const signed = (v) => (v > 0 ? '+' : '') + v;
 const num = (v) => v == null || v === '' || isNaN(+v) ? null : +v;
 const DAY = () => { const d = new Date(), p = (v) => String(v).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
-let SHOW_ALL = false, RESET_AT = '', BOARD = {"reset_at":"2026-11-24 14:51"}; try { RESET_AT = localStorage.getItem(KEY + '_resetAt') || ''; } catch(e){}
+let SHOW_ALL = false, RESET_AT = '', BOARD = {"reset_at":"2026-11-24 14:51"}
+; try { RESET_AT = localStorage.getItem(KEY + '_resetAt') || ''; } catch(e){}
 // Setiap hari board bermula kosong: hanya signal hari ini (dan selepas reset admin) dipaparkan
 const resetMark = () => [RESET_AT, (BOARD && BOARD.reset_at) || ''].sort().pop();
 // Board (signal terkini, statistik, carta): hanya signal hari ini selepas reset. History: semua rekod, tidak dikosongkan.
@@ -760,7 +765,13 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
   if (EMBED) { g.remove(); UNLOCKED = true; return; }
   let authed = false; try { authed = sessionStorage.getItem(KEY + '_auth') === '1' && !!sessionStorage.getItem(KEY + '_role'); } catch(e){}
   document.body.classList.add('locked');
-  $('g-start').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel();
+  const mus = $('g-music'); let musOn = true;
+  try { musOn = localStorage.getItem(KEY + '_music') !== '0'; } catch(e){}
+  function musPlay(){ if (!mus || !musOn) return; mus.volume = 0.35; const pr = mus.play(); if (pr && pr.catch) pr.catch(() => {}); }
+  function musFade(){ if (!mus || mus.paused) return; let v = mus.volume; const iv = setInterval(() => { v -= 0.03; if (v <= 0) { clearInterval(iv); mus.pause(); } else mus.volume = v; }, 60); }
+  $('g-mute').addEventListener('click', () => { musOn = !musOn; try { localStorage.setItem(KEY + '_music', musOn ? '1' : '0'); } catch(e){}
+    $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik'; if (musOn) musPlay(); else mus.pause(); });
+  $('g-start').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel(); musPlay(); $('g-mute').hidden = false; $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik';
     $('g-start').hidden = true;
     SFX.boot();
     if (authed) { $('g-title').textContent = 'WELCOME BACK'; speakNow('Welcome back, sir. This is R eleven. All systems are online.'); setTimeout(openBoard, 900); }
@@ -774,7 +785,7 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
     else if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'client'); } catch(e){} $('g-err').textContent = '';
       SFX.ok(); speakNow('Access granted. Welcome aboard, sir. All systems are online. Have a profitable day.'); openBoard(); }
     else { $('g-err').textContent = 'Password salah. Cuba lagi.'; $('g-pass').value = ''; SFX.err(); speakNow('Access denied. Please try again.'); } });
-  function openBoard(){ UNLOCKED = true; g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 600); }
+  function openBoard(){ UNLOCKED = true; musFade(); g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 2200); }
 })();
 // ---- halang salin (mod client) ----
 ['contextmenu', 'dragstart', 'copy', 'cut'].forEach((ev) => document.addEventListener(ev, (e) => { if (!ADMIN && !e.target.closest('input,textarea')) e.preventDefault(); }));
@@ -810,7 +821,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124150511';
+const APP_VERSION = '20261124154716';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
