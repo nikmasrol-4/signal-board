@@ -93,6 +93,14 @@ body.embed .noembed{display:none!important}
 .gate .gbox{position:relative;margin-bottom:max(28px,env(safe-area-inset-bottom))}
 .gate .gbtn{background:rgba(6,30,45,.75);border-color:#4fb6ff;color:#bfe6ff;box-shadow:0 0 18px rgba(79,182,255,.45)}
 @media (min-aspect-ratio:1/1){.gate{align-items:center;justify-content:flex-end;background-position:30% center}.gate::before{background:linear-gradient(90deg,rgba(0,0,0,0) 55%,rgba(2,6,10,.8) 72%)}.gate .gbox{margin:0 9vw 0 0}}
+.gpill{position:relative;display:flex;align-items:center;justify-content:center;width:min(330px,86vw);height:56px;border-radius:999px;background:rgba(6,30,45,.78);border:2px solid #4fb6ff;color:#bfe6ff;box-shadow:0 0 18px rgba(79,182,255,.45);cursor:pointer;overflow:hidden;transition:box-shadow .3s}
+.gpill #g-lbl{font-weight:800;letter-spacing:.18em;font-size:15px;pointer-events:none}
+.gpill[data-st="1"]{animation:gpulse 1.6s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 0 14px rgba(79,182,255,.4)}50%{box-shadow:0 0 34px rgba(79,182,255,.95)}}
+.gpill[data-st="2"]{cursor:default;justify-content:space-between;padding:0 6px 0 20px}
+.gpill #g-pass{flex:1;min-width:0;width:auto;background:transparent;border:0;outline:0;color:#e8f6ff;font-size:16px;letter-spacing:.12em;text-align:left;padding:0}
+.gpill #g-pass::placeholder{color:#7fb2d8;letter-spacing:.1em;font-size:13px;font-weight:700}
+.gpill #g-go{flex:none;height:42px;padding:0 18px;border-radius:999px;border:1.5px solid #4fb6ff;background:#0d3a5c;color:#e8f6ff;font-weight:800;letter-spacing:.12em;font-size:13px}
 .gmute{position:absolute;top:14px;right:14px;z-index:2;background:rgba(0,0,0,.45);border:1px solid #2f5f86;color:#bfe6ff;border-radius:999px;padding:6px 12px;font-size:13px}
 .gate.out{opacity:0;pointer-events:none}
 body.locked{overflow:hidden}
@@ -100,8 +108,6 @@ body.locked{overflow:hidden}
 .glogo{width:110px;height:110px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:#eef1f4;background:linear-gradient(160deg,#2b4d7a,#1a2f4d);border:2px solid #5a8fd0;box-shadow:0 0 40px rgba(90,143,208,.35)}
 .gtitle{margin:0;color:#7fb2ff;font-weight:800;letter-spacing:.18em;font-size:13px;text-align:center}
 .gbtn{background:#173a2a;border:2px solid #3ecf8e;color:#7ff0b8;border-radius:999px;padding:14px 34px;font-weight:800;letter-spacing:.16em;font-size:14px;box-shadow:0 0 0 4px rgba(90,169,255,.35)}
-#g-form{display:flex;flex-direction:column;gap:12px;width:100%;align-items:center}
-#g-form input{width:100%;text-align:center;font-size:16px;letter-spacing:.1em}
 .gerr{margin:0;color:var(--bad);font-size:13px;min-height:16px}
 .tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .tap:active{transform:scale(.985)}
@@ -138,8 +144,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
 <body>
 <div class="gate" id="gate"><button class="gmute" id="g-mute" hidden>🔊 Muzik</button><audio id="g-music" src="gate-music.mp3" loop preload="auto"></audio><div class="gbox">
   <p class="gtitle" id="g-title">R11 SYSTEM STANDBY</p>
-  <button class="gbtn" id="g-start">TAP TO START</button>
-  <form id="g-form" hidden><input id="g-pass" type="password" placeholder="Password / PIN" inputmode="text" autocomplete="current-password" aria-label="Password"><button class="gbtn" type="submit">ENTER</button><p class="gerr" id="g-err"></p></form>
+  <form id="g-form" class="gpill" data-st="0"><span id="g-lbl">TAP TO START</span><input id="g-pass" type="password" placeholder="ENTER YOUR PASSWORD" inputmode="text" autocomplete="current-password" aria-label="Password" hidden><button type="submit" id="g-go" hidden>ENTER</button></form><p class="gerr" id="g-err"></p>
 </div></div>
 <div class="wrap">
   <header>
@@ -772,20 +777,24 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
   function musFade(){ if (!mus || mus.paused) return; let v = mus.volume; const iv = setInterval(() => { v -= 0.03; if (v <= 0) { clearInterval(iv); mus.pause(); } else mus.volume = v; }, 60); }
   $('g-mute').addEventListener('click', () => { musOn = !musOn; try { localStorage.setItem(KEY + '_music', musOn ? '1' : '0'); } catch(e){}
     $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik'; if (musOn) musPlay(); else mus.pause(); });
-  $('g-start').addEventListener('click', () => { ac(); if (CAN_SPEAK) speechSynthesis.cancel(); musPlay(); $('g-mute').hidden = false; $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik';
-    $('g-start').hidden = true;
-    SFX.boot();
-    if (authed) { $('g-title').textContent = 'WELCOME BACK'; speakNow('Welcome back, sir. This is R eleven. All systems are online.'); setTimeout(openBoard, 900); }
-    else { $('g-title').textContent = 'PLEASE INSERT YOUR PASSWORD'; $('g-form').hidden = false;
+  const gf = $('g-form');
+  gf.addEventListener('click', (e) => { const st = gf.dataset.st;
+    if (st === '0') { ac(); if (CAN_SPEAK) speechSynthesis.cancel(); musPlay(); SFX.boot();
+      $('g-mute').hidden = false; $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik';
+      gf.dataset.st = '1'; $('g-title').textContent = 'R11 SYSTEM ONLINE'; return; }
+    if (st === '1') { ac(); if (CAN_SPEAK) speechSynthesis.cancel();
+      if (authed) { $('g-title').textContent = 'WELCOME BACK'; $('g-lbl').textContent = 'WELCOME BACK'; speakNow('Welcome back, sir. This is R eleven. All systems are online.'); gf.dataset.st = '3'; setTimeout(openBoard, 900); return; }
+      gf.dataset.st = '2'; $('g-lbl').hidden = true; $('g-pass').hidden = false; $('g-go').hidden = false; $('g-pass').focus();
+      $('g-title').textContent = 'PLEASE INSERT YOUR PASSWORD';
       speakNow('Welcome aboard, sir. This is R eleven. Please insert your password.'); } });
-  $('g-form').addEventListener('submit', (e) => { e.preventDefault(); ac();
+  $('g-form').addEventListener('submit', (e) => { e.preventDefault(); if (gf.dataset.st !== '2') return; ac();
     const h = sha($('g-pass').value.trim().toLowerCase());
     if (h === ADMIN_HASH) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'admin'); } catch(e){} $('g-err').textContent = '';
       ADMIN = true; document.body.classList.remove('client'); render(); roleUI();
       SFX.ok(); speakNow('Access granted. Welcome aboard, captain. Admin mode is active.'); openBoard(); }
     else if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'client'); } catch(e){} $('g-err').textContent = '';
       SFX.ok(); speakNow('Access granted. Welcome aboard, sir. All systems are online. Have a profitable day.'); openBoard(); }
-    else { $('g-err').textContent = 'Password salah. Cuba lagi.'; $('g-pass').value = ''; SFX.err(); speakNow('Access denied. Please try again.'); } });
+    else { $('g-err').textContent = 'Password salah. Cuba lagi.'; $('g-pass').value = ''; $('g-pass').focus(); SFX.err(); speakNow('Access denied. Please try again.'); } });
   function openBoard(){ UNLOCKED = true; musFade();
     setTimeout(() => { const p = PEND.splice(0); p.filter((ev) => ev.s).forEach((ev, i) => setTimeout(() => showEvent(ev), 50 + i * 5000)); if (VOICE_ON) p.forEach((ev) => announce(ev.sfx, ev.tx)); }, 1200); g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 2200); }
 })();
@@ -823,7 +832,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124155632';
+const APP_VERSION = '20261124160015';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
