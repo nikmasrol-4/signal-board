@@ -166,7 +166,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
 <div class="wrap">
   <header>
     <h1>Board Signal XAUUSD</h1>
-    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2 noembed" id="b-logout" style="padding:4px 10px;font-size:12px;margin-top:6px">🔒 Tukar akaun</button> <button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> <button class="btn2 noembed" id="b-periodic" style="padding:4px 10px;font-size:12px;margin-top:6px">⏱ Laporan 30s ON</button> <select id="v-name" class="noembed" aria-label="Pilih suara" style="padding:4px 8px;font-size:12px;margin-top:6px;max-width:230px" hidden></select> </span>
+    <p class="sync" id="sync">Menyambung…</p> <span class="vrow"><button class="btn2 noembed" id="b-logout" style="padding:4px 10px;font-size:12px;margin-top:6px">🔒 Tukar akaun</button> <button class="btn2" id="b-update" hidden style="padding:4px 10px;font-size:12px;margin-top:6px;border-color:#f3cf6a;color:#f3cf6a">⬆ Versi baru · tekan</button> <button class="btn2" id="b-sync" style="padding:4px 10px;font-size:12px;margin-top:6px">↻ Semak sekarang</button> <button class="btn2 noembed" id="b-voice" style="padding:4px 10px;font-size:12px;margin-top:6px">🔇 Suara OFF</button> <button class="btn2 noembed" id="b-periodic" style="padding:4px 10px;font-size:12px;margin-top:6px">⏱ Laporan 20s ON</button> <select id="v-name" class="noembed" aria-label="Pilih suara" style="padding:4px 8px;font-size:12px;margin-top:6px;max-width:230px" hidden></select> </span>
     <p class="sub">Strategi R1/S1 · Reversal &amp; Continuation · SL 60 pips · Satu trade pada satu masa</p>
   </header>
 
@@ -702,19 +702,22 @@ function fillVoices(){ const sel = $('v-name'); if (!sel) return; const vs = eng
   vs.forEach((v) => sel.appendChild(new Option((voiceScore(v) >= 80 ? '★ ' : '') + v.name.replace(/^Microsoft |^Google /, '') + ' (' + v.lang + ')', v.name, false, cur && v.name === cur.name))); }
 if (CAN_SPEAK) { speechSynthesis.onvoiceschanged = fillVoices; setTimeout(fillVoices, 300); setTimeout(fillVoices, 1500); }
 let chain = Promise.resolve();
+let SPK0 = 0;
+if (CAN_SPEAK) setInterval(() => { try { if (!speechSynthesis.speaking) return; if (Date.now() - SPK0 > 40000) { speechSynthesis.cancel(); chain = Promise.resolve(); return; }
+  if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) { speechSynthesis.pause(); speechSynthesis.resume(); } } catch(e){} }, 10000);
 function announce(sfx, text){
   chain = chain.then(() => new Promise((res) => {
     const ms = sfx && SFX[sfx] ? SFX[sfx]() : 0;
     setTimeout(() => { if (!text || !CAN_SPEAK) return res();
       const u = new SpeechSynthesisUtterance(text), v = pickVoice(); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB';
       u.rate = 0.95; let done = false; const fin = () => { if (!done) { done = true; res(); } };
-      u.onend = fin; u.onerror = fin; speechSynthesis.speak(u); setTimeout(fin, 45000); }, ms + 150);
+      u.onend = fin; u.onerror = fin; SPK0 = Date.now(); speechSynthesis.speak(u); setTimeout(fin, 45000); }, ms + 150);
   }));
 }
 function speak(text){ announce(null, text); }
 // Bercakap terus dalam tekanan jari (telefon hanya benarkan suara pertama di sini)
 function speakNow(text){ if (!CAN_SPEAK) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text), v = pickVoice();
-  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB'; u.rate = 0.95; speechSynthesis.speak(u); } catch(e){} }
+  if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB'; u.rate = 0.95; SPK0 = Date.now(); speechSynthesis.speak(u); } catch(e){} }
 function statsLine(){ const done = view().filter((s) => s.status in PIPS), w = done.filter((s) => s.status.startsWith('WIN')).length, l = done.length - w, p = done.reduce((a, s) => a + PIPS[s.status], 0);
   if (!done.length) return ''; return `Win rate is now ${Math.round(w / done.length * 100)} percent, with ${w} ${w === 1 ? 'win' : 'wins'} and ${l} ${l === 1 ? 'loss' : 'losses'}. Total ${p >= 0 ? 'plus' : 'minus'} ${Math.abs(p)} pips.`; }
 function sayNew(s){ return `Attention please. New ${DIR(s.arah)} signal for Gold. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. Entry price, ${NUM(s.entry)}. Stop loss at ${NUM(s.sl)}, that is sixty pips. Take profit one at ${NUM(s.tp1)}, take profit two at ${NUM(s.tp2)}, and take profit three at ${NUM(s.tp3)}. Wait for price to come back to the entry zone before you enter. Always manage your risk.`; }
@@ -802,7 +805,7 @@ document.querySelectorAll('.type[data-type]').forEach((el) => el.addEventListene
 $('refs').addEventListener('click', (e) => { const c = e.target.closest('[data-ref]'); if (c) tapSay(REF[+c.dataset.ref].den); });
 $('jrows').addEventListener('click', (e) => { const tr = e.target.closest('tr'); if (!tr) return; const i = [...tr.parentNode.children].indexOf(tr); if (i < 4) tapSay(sayType(String(i + 1))); });
 // ---- laporan setiap 30 saat ----
-const PKEY = KEY + '_periodic'; let PERIODIC = true, pIdx = 0; try { PERIODIC = localStorage.getItem(PKEY) !== '0'; } catch(e){}
+const PKEY = KEY + '_periodic20'; let PERIODIC = true, pIdx = 0; try { PERIODIC = localStorage.getItem(PKEY) !== '0'; } catch(e){}
 function ageOf(s){ const t0 = new Date(String(s.masa).replace(' ', 'T')); const m = Math.max(0, Math.round((Date.now() - t0) / 60000)); if (isNaN(m)) return '';
   if (m < 60) return m + (m === 1 ? ' minute' : ' minutes'); const h = Math.floor(m / 60), r = m % 60; if (h >= 48) return Math.floor(h / 24) + ' days';
   return h + (h === 1 ? ' hour' : ' hours') + (r ? ' and ' + r + (r === 1 ? ' minute' : ' minutes') : ''); }
@@ -815,9 +818,9 @@ function sayPeriodic(){ const act = sorted().find((s) => s.status === 'AKTIF'), 
     `R eleven monitoring. ${DIR(run.arah)} ${NUM(run.entry)} is waiting for entry. Take profit one ${NUM(run.tp1)}, take profit two ${NUM(run.tp2)}, take profit three ${NUM(run.tp3)}. Stop loss ${NUM(run.sl)}.`,
     `Market check. ${sayWR()} The running signal is ${DIR(run.arah)} at ${NUM(run.entry)}, still waiting for entry.`];
   return v[(pIdx++) % v.length]; }
-setInterval(() => { if (!PERIODIC || !VOICE_ON || EMBED || !UNLOCKED || document.hidden || !CAN_SPEAK) return; if (speechSynthesis.speaking || speechSynthesis.pending) return; announce(null, sayPeriodic()); }, 30000);
-function periodicUI(){ const b = $('b-periodic'); if (b) { b.textContent = PERIODIC ? '⏱ Laporan 30s ON' : '⏱ Laporan 30s OFF'; b.classList.toggle('acc', PERIODIC); } }
-$('b-periodic').addEventListener('click', () => { PERIODIC = !PERIODIC; try { localStorage.setItem(PKEY, PERIODIC ? '1' : '0'); } catch(e){} periodicUI(); tapSay(PERIODIC ? 'Thirty second status reports are on.' : 'Thirty second status reports are off.'); });
+setInterval(() => { if (!PERIODIC || !VOICE_ON || EMBED || !UNLOCKED || document.hidden || !CAN_SPEAK) return; if (speechSynthesis.speaking || speechSynthesis.pending) return; announce(null, sayPeriodic()); }, 20000);
+function periodicUI(){ const b = $('b-periodic'); if (b) { b.textContent = PERIODIC ? '⏱ Laporan 20s ON' : '⏱ Laporan 20s OFF'; b.classList.toggle('acc', PERIODIC); } }
+$('b-periodic').addEventListener('click', () => { PERIODIC = !PERIODIC; try { localStorage.setItem(PKEY, PERIODIC ? '1' : '0'); } catch(e){} periodicUI(); tapSay(PERIODIC ? 'Twenty second status reports are on.' : 'Twenty second status reports are off.'); });
 periodicUI();
 function voiceUI(){ const b = $('b-voice'); if (!b) return; b.textContent = VOICE_ON ? '🔊 Suara ON' : '🔇 Suara OFF'; b.classList.toggle('acc', VOICE_ON); }
 if (!CAN_SPEAK) { ['b-say-sig','b-say-ana'].forEach((i) => { if ($(i)) $(i).hidden = true; }); }
@@ -979,14 +982,19 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124201639';
+const APP_VERSION = '20261124202554';
+let NEWVER = '';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
-    if (v && v !== APP_VERSION) { const k = KEY + '_reload'; if (sessionStorage.getItem(k) !== v) { sessionStorage.setItem(k, v); location.reload(); } } } catch(e){}
+    if (v && v !== APP_VERSION) { const k = KEY + '_reload'; if (sessionStorage.getItem(k) === v) return;
+      if (UNLOCKED && !document.hidden) { NEWVER = v; const b = $('b-update'); if (b) b.hidden = false; return; }
+      sessionStorage.setItem(k, v); location.reload(); } } catch(e){}
 }
 checkVersion();
-sync(); setInterval(() => { sync(); checkVersion(); }, 30000);
+sync(); setInterval(() => { sync(); checkVersion(); }, 20000);
+document.addEventListener('visibilitychange', () => { if (document.hidden && NEWVER) { try { sessionStorage.setItem(KEY + '_reload', NEWVER); } catch(e){} location.reload(); } });
+$('b-update').addEventListener('click', () => { try { sessionStorage.setItem(KEY + '_reload', NEWVER); } catch(e){} location.reload(); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('b-sync').addEventListener('click', () => { $('sync').textContent = 'Menyemak…'; sync(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { sync(); checkVersion(); } });
