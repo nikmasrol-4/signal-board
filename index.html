@@ -210,6 +210,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
     <div class="chart" id="c-ruj" style="margin-top:8px"></div>
     <ul class="ana-list" id="ruj-teks"></ul>
     <button class="btn2" id="b-say-ruj" style="padding:6px 12px;font-size:12px;margin-top:10px">🔊 Dengar pair rujukan</button>
+    <div id="ruj-extra"></div>
   </section>
 
   <section class="card wm noembed" id="news-card">
@@ -470,6 +471,17 @@ function drawRuj(){
   $('ruj-kesan').textContent = A.kesan ? '🧭 ' + A.kesan : ''; $('ruj-kesan').hidden = !A.kesan;
   const ul = $('ruj-teks'); ul.replaceChildren(); (A.teks || []).forEach((s) => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
   drawZon(el, A, fm, 'Pair rujukan ' + (A.pair || ''));
+  const ex = $('ruj-extra'); ex.replaceChildren();
+  (A.extra || []).forEach((B, n) => { if (!Array.isArray(B.candles) || B.candles.length < 2) return;
+    const fb = (v) => Number(v).toFixed(+B.dp || 2);
+    const hd = document.createElement('div'); hd.className = 'head'; hd.style.marginTop = '22px';
+    const h2 = document.createElement('h2'); h2.textContent = 'RUJUKAN ' + (n + 2); const pl = document.createElement('span'); pl.className = 'pill'; pl.textContent = (B.pair || '') + ' ' + (B.tf || ''); hd.append(h2, pl);
+    const mt = document.createElement('p'); mt.className = 'note'; mt.style.marginTop = '6px'; mt.textContent = (B.nama || B.pair || '') + ' · dikemas kini ' + (B.masa || '') + ' · harga ' + fb(B.harga);
+    const ch = document.createElement('div'); ch.className = 'chart'; ch.style.marginTop = '8px';
+    const ul = document.createElement('ul'); ul.className = 'ana-list'; (B.teks || []).forEach((s) => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
+    const bt = document.createElement('button'); bt.className = 'btn2'; bt.style.cssText = 'padding:6px 12px;font-size:12px;margin-top:10px'; bt.textContent = '🔊 Dengar rujukan ' + (n + 2);
+    bt.addEventListener('click', () => tapSay((B.nama || '') + '. ' + (B.teks_en || []).join(' ')));
+    ex.append(hd, mt, ch, ul, bt); drawZon(ch, B, fb, B.nama || 'Rujukan'); });
 }
 function drawNews(){
   const card = $('news-card'), N = NEWS; if (!card) return;
@@ -1002,7 +1014,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261125064028';
+const APP_VERSION = '20261125064209';
 let NEWVER = '';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
