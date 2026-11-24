@@ -88,11 +88,12 @@ body.embed #carta-card, body.embed #analisis-card{border:0;padding:6px;backgroun
 .ana-list{margin:10px 0 0;padding-left:18px;color:var(--fg);font-size:14px;line-height:1.55}
 .ana-list li{margin:4px 0}
 body.embed .noembed{display:none!important}
-.gate{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:#020711 url(gate-bg2.jpg) center/cover no-repeat;transition:opacity .8s}
+.gate{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:#020711 url(gate-bg3.jpg) center/cover no-repeat;transition:opacity .8s}
 .gate::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 70%,rgba(2,6,12,.55) 100%);pointer-events:none}
-.gate .gbox{position:relative;margin-bottom:max(28px,env(safe-area-inset-bottom))}
+.gate .gbox{position:relative;gap:10px;margin-bottom:max(18px,env(safe-area-inset-bottom))}
 .gate .gbtn{background:rgba(6,30,45,.75);border-color:#4fb6ff;color:#bfe6ff;box-shadow:0 0 18px rgba(79,182,255,.45)}
-@media (min-aspect-ratio:1/1){.gate{background-size:contain}}
+@media (min-aspect-ratio:1/1){.gate,#g-orig{background-size:contain!important}}
+#g-orig{position:absolute;inset:0;z-index:1;background:url(gate-orig.jpg) center/cover no-repeat;opacity:0;transition:opacity .6s;pointer-events:none}#g-orig.on{opacity:1}
 #g-box{opacity:0;transform:translateY(14px);pointer-events:none;transition:opacity .7s,transform .7s}#g-box.on{opacity:1;transform:none;pointer-events:auto}
 .ghint{position:absolute;left:0;right:0;bottom:max(34px,env(safe-area-inset-bottom));z-index:2;margin:0;text-align:center;color:#8fd0ff;font-size:12px;font-weight:800;letter-spacing:.32em;animation:hintp 2s ease-in-out infinite;pointer-events:none}@keyframes hintp{0%,100%{opacity:.35}50%{opacity:1}}
 .gpill{position:relative;display:flex;align-items:center;justify-content:center;width:min(330px,86vw);height:56px;border-radius:999px;background:rgba(6,30,45,.78);border:2px solid #4fb6ff;color:#bfe6ff;box-shadow:0 0 18px rgba(79,182,255,.45);cursor:pointer;overflow:hidden;transition:box-shadow .3s}
@@ -103,7 +104,7 @@ body.embed .noembed{display:none!important}
 .gpill #g-pass{flex:1;min-width:0;width:auto;background:transparent;border:0;outline:0;color:#e8f6ff;font-size:16px;letter-spacing:.12em;text-align:left;padding:0}
 .gpill #g-pass::placeholder{color:#7fb2d8;letter-spacing:.1em;font-size:13px;font-weight:700}
 .gpill #g-go{flex:none;height:42px;padding:0 18px;border-radius:999px;border:1.5px solid #4fb6ff;background:#0d3a5c;color:#e8f6ff;font-weight:800;letter-spacing:.12em;font-size:13px}
-#g-holo{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;mix-blend-mode:screen;filter:drop-shadow(0 0 5px rgba(40,150,255,.9)) brightness(1.15)}
+#g-holo{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;mix-blend-mode:screen;transition:opacity .8s}
 .gate .gbox{z-index:2}
 .gmute{position:absolute;top:14px;right:14px;z-index:2;background:rgba(0,0,0,.45);border:1px solid #2f5f86;color:#bfe6ff;border-radius:999px;padding:6px 12px;font-size:13px}
 .gate.out{opacity:0;pointer-events:none}
@@ -146,7 +147,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
 </style>
 </head>
 <body>
-<div class="gate" id="gate"><canvas id="g-holo" aria-hidden="true"></canvas><button class="gmute" id="g-mute" hidden>🔊 Muzik</button><audio id="g-music" src="gate-music.mp3" loop preload="auto"></audio><p class="ghint" id="g-hint">SENTUH SKRIN</p><div class="gbox" id="g-box">
+<div class="gate" id="gate"><div id="g-orig" class="on"></div><canvas id="g-holo" aria-hidden="true"></canvas><button class="gmute" id="g-mute" hidden>🔊 Muzik</button><audio id="g-music" src="gate-music.mp3" loop preload="auto"></audio><p class="ghint" id="g-hint">SENTUH SKRIN</p><div class="gbox" id="g-box">
   <p class="gtitle" id="g-title">R11 SYSTEM ONLINE</p>
   <form id="g-form" class="gpill" data-st="1"><span id="g-lbl">TAP TO START</span><input id="g-pass" type="password" placeholder="ENTER YOUR PASSWORD" inputmode="text" autocomplete="current-password" aria-label="Password" hidden><button type="submit" id="g-go" hidden>ENTER</button></form><p class="gerr" id="g-err"></p>
 </div></div>
@@ -784,51 +785,52 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
   $('g-mute').addEventListener('click', () => { musOn = !musOn; try { localStorage.setItem(KEY + '_music', musOn ? '1' : '0'); } catch(e){}
     $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik'; if (musOn) musPlay(); else mus.pause(); });
   const gf = $('g-form');
-  const HOLO = { spin: 1, target: 1 };
-  (function holo(){ const cv = $('g-holo'); if (!cv) return; const x = cv.getContext('2d'); const off = document.createElement('canvas'), o = off.getContext('2d');
-    const IW = 941, IH = 1672, GX = 468, GY = 728, GR = 384, D = Math.PI / 180, LAT0 = 8 * D, ROLL = -4 * D;
-    let pts = null; const mk = new Image(); mk.onload = () => { const c = document.createElement('canvas'); c.width = mk.width; c.height = mk.height; const cx = c.getContext('2d'); cx.drawImage(mk, 0, 0);
-      const dat = cx.getImageData(0, 0, c.width, c.height).data, MW = c.width, MH = c.height;
-      const land = (la, lo) => { let u = Math.floor((lo / D + 180) / 360 * MW), v = Math.floor((90 - la / D) / 180 * MH); u = ((u % MW) + MW) % MW; v = Math.max(0, Math.min(MH - 1, v)); return dat[(v * MW + u) * 4] > 127; };
-      const out = [], N = 26000; for (let i = 0; i < N; i++) { const y = 1 - 2 * (i + .5) / N, la = Math.asin(y), lo = ((i * 2.399963) % (2 * Math.PI)) - Math.PI;
-        if (!land(la, lo)) continue; const e = 1.4 * D, coast = !land(la + e, lo) || !land(la - e, lo) || !land(la, lo + e / Math.max(.2, Math.cos(la))) || !land(la, lo - e / Math.max(.2, Math.cos(la)));
-        out.push(Math.cos(la), Math.sin(la), lo, coast ? 1 : 0); }
-      pts = new Float32Array(out); }; mk.src = 'land-mask.png';
+  const HOLO = { stopping: false };
+  (function holo(){ const cv = $('g-holo'); if (!cv) return; const x = cv.getContext('2d');
+    const IW = 941, IH = 1672, D = Math.PI / 180, GCX = 477, GCY = 902, GRX = 313, GRY = 278, LA0 = 15.73 * D, LO0 = -55.85 * D, RL = -5.78 * D;
+    const BX = Math.floor(GCX - GRX - 2), BY = Math.floor(GCY - GRY - 2), BW = 2 * GRX + 5, BH = 2 * GRY + 5;
+    const off = document.createElement('canvas'); off.width = BW; off.height = BH; const o = off.getContext('2d'); const id = o.createImageData(BW, BH), px = id.data;
+    const lay = document.createElement('canvas'), l = lay.getContext('2d');
+    let TW = 0, TH = 0, tex = null, oIdx, vRow, lOff, shd, aEdge, n = 0;
+    (function pre(){ const cr = Math.cos(RL), sr = Math.sin(RL), c0 = Math.cos(LA0), s0 = Math.sin(LA0); const A = [], V = [], L = [], S = [], E = [];
+      for (let j = 0; j < BH; j++) for (let i = 0; i < BW; i++) { const X = (BX + i + .5 - GCX) / GRX, Y = -(BY + j + .5 - GCY) / GRY; const xx = X * cr + Y * sr, yy = -X * sr + Y * cr, r2 = xx * xx + yy * yy; if (r2 >= 1) continue;
+        const z = Math.sqrt(1 - r2), la = Math.asin(yy * c0 + z * s0), lo = Math.atan2(xx, z * c0 - yy * s0);
+        A.push((j * BW + i) * 4); V.push(la); L.push(lo); S.push(.45 + .55 * Math.pow(z, .6)); E.push(Math.min(255, (1 - Math.sqrt(r2)) * 255 * 70)); }
+      n = A.length; oIdx = Int32Array.from(A); vRow = new Float32Array(V); lOff = new Float32Array(L); shd = new Float32Array(S); aEdge = new Uint8Array(E); })();
+    const ti = new Image(); ti.onload = () => { const c = document.createElement('canvas'); c.width = TW = ti.width; c.height = TH = ti.height; const cx = c.getContext('2d'); cx.drawImage(ti, 0, 0); tex = cx.getImageData(0, 0, TW, TH).data;
+      const rows = new Int32Array(n); for (let k = 0; k < n; k++) rows[k] = Math.min(TH - 1, Math.max(0, Math.floor((90 - vRow[k] / D) / 180 * TH))) * TW; vRow = rows; }; ti.src = 'earth-tex.jpg';
     let W = 0, H = 0, dpr = 1, S = 1, OX = 0, OY = 0;
-    function size(){ dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = off.width = Math.round(W * dpr); cv.height = off.height = Math.round(H * dpr);
+    function size(){ dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = lay.width = Math.round(W * dpr); cv.height = lay.height = Math.round(H * dpr);
       S = W / H >= 1 ? Math.min(W / IW, H / IH) : Math.max(W / IW, H / IH); OX = (W - IW * S) / 2; OY = (H - IH * S) / 2; }
     size(); addEventListener('resize', size);
-    let lon0 = -50 * D, last = performance.now(), glitchUntil = 0, nextGlitch = last + 4000 + Math.random() * 4000; window.__holoGlitch = () => { nextGlitch = 0; };
-    const sL = Math.sin(LAT0), cL = Math.cos(LAT0), sR = Math.sin(ROLL), cR = Math.cos(ROLL);
-    function frame(now){ if (!document.body.contains(cv)) return; requestAnimationFrame(frame);
-      const dt = Math.min(.1, (now - last) / 1000); last = now; HOLO.spin += (HOLO.target - HOLO.spin) * Math.min(1, dt * 2.2); if (Math.abs(HOLO.spin) < .002 && !HOLO.target) HOLO.spin = 0;
-      lon0 -= dt * HOLO.spin * (2 * Math.PI / 32);
-      const CX = OX + GX * S, CY = OY + GY * S, R = GR * S;
-      o.setTransform(dpr, 0, 0, dpr, 0, 0); o.clearRect(0, 0, W, H);
-      let g = o.createRadialGradient(CX, CY, R * .2, CX, CY, R); g.addColorStop(0, 'rgba(20,80,180,.10)'); g.addColorStop(.85, 'rgba(20,90,200,.10)'); g.addColorStop(1, 'rgba(60,150,255,.35)');
-      o.fillStyle = g; o.beginPath(); o.arc(CX, CY, R, 0, 7); o.fill();
-      if (pts) { const ds = Math.max(1.4, R / 150);
-        for (let i = 0; i < pts.length; i += 4) { const cl = pts[i], sl = pts[i + 1], dl = pts[i + 2] - lon0, cd = Math.cos(dl);
-          const z = sL * sl + cL * cl * cd; if (z <= 0.02) continue;
-          const px = cl * Math.sin(dl), py = cL * sl - sL * cl * cd, X = px * cR - py * sR, Y = px * sR + py * cR;
-          const sx = CX + X * R, sy = CY - Y * R, b = .25 + .75 * z;
-          if (pts[i + 3]) { o.fillStyle = 'rgba(170,235,255,' + b + ')'; o.fillRect(sx - ds * .75, sy - ds * .75, ds * 1.5, ds * 1.5); }
-          else { o.fillStyle = 'rgba(70,180,255,' + b + ')'; o.fillRect(sx - ds * .55, sy - ds * .55, ds * 1.1, ds * 1.1); } } }
-      o.strokeStyle = 'rgba(90,180,255,.55)'; o.lineWidth = 2; o.beginPath(); o.arc(CX, CY, R, 0, 7); o.stroke();
-      o.save(); o.beginPath(); o.arc(CX, CY, R, 0, 7); o.clip(); for (let yy = CY - R; yy < CY + R; yy += 4 * Math.max(1, S * 2)) { o.fillStyle = 'rgba(0,6,16,.14)'; o.fillRect(CX - R, yy, 2 * R, 1.2); }
-        const sy = CY - R + ((now / 16) % (2 * R + 80)) - 40; g = o.createLinearGradient(0, sy - 26, 0, sy + 26); g.addColorStop(0, 'rgba(120,210,255,0)'); g.addColorStop(.5, 'rgba(120,210,255,.18)'); g.addColorStop(1, 'rgba(120,210,255,0)'); o.fillStyle = g; o.fillRect(CX - R, sy - 26, 2 * R, 52); o.restore();
+    const RATE = 2 * Math.PI / 32; let lon0 = LO0, last = performance.now(), st0 = 0, stFrom = 0, stTo = 0, done = false;
+    let glitchUntil = 0, nextGlitch = last + 4000 + Math.random() * 4000; window.__holoGlitch = () => { nextGlitch = 0; };
+    HOLO.stop = (cb) => { if (HOLO.stopping) return; HOLO.stopping = true; st0 = performance.now(); stFrom = lon0; let rem = ((lon0 - LO0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI); if (rem < .5) rem += 2 * Math.PI; stTo = lon0 - rem; HOLO.cb = cb; };
+    function frame(now){ if (!document.body.contains(cv) || done) return; requestAnimationFrame(frame);
+      const dt = Math.min(.1, (now - last) / 1000); last = now;
+      if (!HOLO.stopping) lon0 -= dt * RATE;
+      else { const t = Math.min(1, (now - st0) / 2600), e = 1 - Math.pow(1 - t, 3); lon0 = stFrom + (stTo - stFrom) * e; if (t >= 1) { lon0 = LO0; done = true; if (HOLO.cb) HOLO.cb(); } }
+      if (tex) { const K = TW / (2 * Math.PI), h = TW / 2;
+        for (let k = 0; k < n; k++) { let u = ((lOff[k] + lon0) * K + h) | 0; u %= TW; if (u < 0) u += TW; const s = (vRow[k] + u) * 4, d = oIdx[k], f = shd[k];
+          px[d] = tex[s] * f; px[d + 1] = tex[s + 1] * f; px[d + 2] = tex[s + 2] * f; px[d + 3] = aEdge[k]; }
+        o.putImageData(id, 0, 0); }
+      l.setTransform(1, 0, 0, 1, 0, 0); l.clearRect(0, 0, lay.width, lay.height);
+      l.setTransform(S * dpr, 0, 0, S * dpr, OX * dpr, OY * dpr); l.imageSmoothingQuality = 'high'; l.drawImage(off, BX, BY);
       x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
-      if (now > nextGlitch) { glitchUntil = now + 160 + Math.random() * 300; nextGlitch = now + 4000 + Math.random() * 6000; }
+      if (!done && now > nextGlitch && !HOLO.stopping) { glitchUntil = now + 160 + Math.random() * 300; nextGlitch = now + 4000 + Math.random() * 6000; }
       if (now < glitchUntil) { const Hh = cv.height, Ww = cv.width; x.globalAlpha = .6 + Math.random() * .4;
-        for (let y0 = 0; y0 < Hh;) { const h = (6 + Math.random() * 36) * dpr, dx = (Math.random() < .35 ? (Math.random() - .5) * 50 : 0) * dpr; x.drawImage(off, 0, y0, Ww, h, dx, y0, Ww, h); y0 += h; }
-        x.globalCompositeOperation = 'lighter'; x.globalAlpha = .3; x.filter = 'hue-rotate(150deg)'; x.drawImage(off, (5 + Math.random() * 8) * dpr, 0); x.filter = 'none'; x.globalAlpha = .22; x.drawImage(off, -6 * dpr, 2 * dpr);
+        for (let y0 = 0; y0 < Hh;) { const hh = (6 + Math.random() * 36) * dpr, dx = (Math.random() < .35 ? (Math.random() - .5) * 50 : 0) * dpr; x.drawImage(lay, 0, y0, Ww, hh, dx, y0, Ww, hh); y0 += hh; }
+        x.globalCompositeOperation = 'lighter'; x.globalAlpha = .3; x.filter = 'hue-rotate(150deg)'; x.drawImage(lay, (5 + Math.random() * 8) * dpr, 0); x.filter = 'none'; x.globalAlpha = .22; x.drawImage(lay, -6 * dpr, 2 * dpr);
         x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; if (Math.random() < .5) { x.fillStyle = 'rgba(140,220,255,.16)'; x.fillRect(0, Math.random() * Hh, Ww, (2 + Math.random() * 5) * dpr); } }
-      else x.drawImage(off, 0, 0); }
+      else x.drawImage(lay, 0, 0); }
     requestAnimationFrame(frame); })();
+  setTimeout(() => { const og = $('g-orig'); if (og && !HOLO.stopping) og.classList.remove('on'); }, 1400);
   let gStage = 0; const hint = $('g-hint');
   g.addEventListener('click', (e) => { if (gStage >= 2 || e.target.closest('#g-mute')) return;
     if (gStage === 0) { ac(); musPlay(); $('g-mute').hidden = false; $('g-mute').textContent = musOn ? '🔊 Muzik' : '🔇 Muzik'; gStage = 1; return; }
-    gStage = 2; HOLO.target = 0; if (hint) hint.hidden = true; $('g-box').classList.add('on'); });
+    gStage = 2; if (hint) hint.hidden = true;
+    const fin = () => { const og = $('g-orig'); if (og) og.classList.add('on'); setTimeout(() => { const c = $('g-holo'); if (c) c.style.opacity = '0'; $('g-box').classList.add('on'); }, 500); };
+    if (HOLO.stop) HOLO.stop(fin); else fin(); });
   gf.addEventListener('click', (e) => { const st = gf.dataset.st;
     if (st === '1') { ac(); if (CAN_SPEAK) speechSynthesis.cancel(); SFX.boot();
       if (authed) { $('g-title').textContent = 'WELCOME BACK'; $('g-lbl').textContent = 'WELCOME BACK'; speakNow('Welcome back, sir. This is R eleven. All systems are online.'); gf.dataset.st = '3'; setTimeout(openBoard, 900); return; }
@@ -880,7 +882,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124174004';
+const APP_VERSION = '20261124180744';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
