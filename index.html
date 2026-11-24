@@ -816,6 +816,7 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
         o.putImageData(id, 0, 0); }
       l.setTransform(1, 0, 0, 1, 0, 0); l.clearRect(0, 0, lay.width, lay.height);
       l.setTransform(S * dpr, 0, 0, S * dpr, OX * dpr, OY * dpr); l.imageSmoothingQuality = 'high'; l.drawImage(off, BX, BY);
+      l.save(); l.shadowColor = 'rgba(40,170,255,.95)'; l.shadowBlur = 22 * S * dpr; l.strokeStyle = 'rgba(80,200,255,.55)'; l.lineWidth = 3; l.beginPath(); l.ellipse(GCX, GCY, GRX - 1, GRY - 1, 0, 0, 7); l.stroke(); l.restore();
       x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
       if (!done && now > nextGlitch && !HOLO.stopping) { glitchUntil = now + 160 + Math.random() * 300; nextGlitch = now + 4000 + Math.random() * 6000; }
       if (now < glitchUntil) { const Hh = cv.height, Ww = cv.width; x.globalAlpha = .6 + Math.random() * .4;
@@ -882,7 +883,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124180744';
+const APP_VERSION = '20261124183659';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
