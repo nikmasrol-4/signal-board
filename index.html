@@ -837,7 +837,7 @@ function sayPeriodic(){ const act = sorted().find((s) => s.status === 'AKTIF'), 
     `R eleven monitoring. ${DIR(run.arah)} ${NUM(run.entry)} is waiting for entry. Take profit one ${NUM(run.tp1)}, take profit two ${NUM(run.tp2)}, take profit three ${NUM(run.tp3)}. Stop loss ${NUM(run.sl)}.`,
     `Market check. ${sayWR()} The running signal is ${DIR(run.arah)} at ${NUM(run.entry)}, still waiting for entry.`];
   return v[(pIdx++) % v.length]; }
-setInterval(() => { if (!PERIODIC || !VOICE_ON || EMBED || !UNLOCKED || document.hidden || !CAN_SPEAK) return; if (speechSynthesis.speaking || speechSynthesis.pending) return; announce(null, sayPeriodic()); }, 20000);
+setInterval(() => { if (!PERIODIC || !VOICE_ON || EMBED || !UNLOCKED || !CAN_SPEAK) return; if (speechSynthesis.speaking || speechSynthesis.pending) return; announce(null, sayPeriodic()); }, 20000);
 function periodicUI(){ const b = $('b-periodic'); if (b) { b.textContent = PERIODIC ? '⏱ Laporan 20s ON' : '⏱ Laporan 20s OFF'; b.classList.toggle('acc', PERIODIC); } }
 $('b-periodic').addEventListener('click', () => { PERIODIC = !PERIODIC; try { localStorage.setItem(PKEY, PERIODIC ? '1' : '0'); } catch(e){} periodicUI(); tapSay(PERIODIC ? 'Twenty second status reports are on.' : 'Twenty second status reports are off.'); });
 periodicUI();
@@ -1001,18 +1001,17 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124203253';
+const APP_VERSION = '20261124203639';
 let NEWVER = '';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
     if (v && v !== APP_VERSION) { const k = KEY + '_reload'; if (sessionStorage.getItem(k) === v) return;
-      if (UNLOCKED && !document.hidden) { NEWVER = v; const b = $('b-update'); if (b) b.hidden = false; return; }
+      if (UNLOCKED) { NEWVER = v; const b = $('b-update'); if (b) b.hidden = false; return; }
       sessionStorage.setItem(k, v); location.reload(); } } catch(e){}
 }
 checkVersion();
 sync(); setInterval(() => { sync(); checkVersion(); }, 20000);
-document.addEventListener('visibilitychange', () => { if (document.hidden && NEWVER) { try { sessionStorage.setItem(KEY + '_reload', NEWVER); } catch(e){} location.reload(); } });
 $('b-update').addEventListener('click', () => { try { sessionStorage.setItem(KEY + '_reload', NEWVER); } catch(e){} location.reload(); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 $('b-sync').addEventListener('click', () => { $('sync').textContent = 'Menyemak…'; sync(); });
