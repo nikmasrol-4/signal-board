@@ -602,7 +602,7 @@ const SFX = {
   err(){ tone(200, 0, .4, 'square', .1); tone(150, .42, .4, 'square', .1); return 900; } };
 // ---- suara: dalam English, beratur supaya tidak bertindih ----
 const VKEY = KEY + '_voice', SKEY = KEY + '_spoken';
-let VOICE_ON = true, spoken = null; const VLANG = 'en';
+let VOICE_ON = true, spoken = null, PEND = []; const VLANG = 'en';
 try { VOICE_ON = !EMBED && localStorage.getItem(VKEY) !== '0'; spoken = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){}
 const CAN_SPEAK = 'speechSynthesis' in window;
 function voiceScore(v){ const n = v.name.toLowerCase(), l = v.lang.toLowerCase().replace('_', '-');
@@ -671,8 +671,9 @@ function voiceCheck(){
   const am = ANA && ANA.masa; if (am && spoken.__ana !== am) { if (!first && spoken.__ana) evs.push({k:'ana', sfx:'ok', tx:'Market analysis has been updated. ' + ((ANA.teks_en || [])[0] || '') + ' Tap the analysis to hear the full details.'}); spoken.__ana = am; }
   try { localStorage.setItem(SKEY, JSON.stringify(spoken)); } catch(e){}
   if (!evs.length) return;
+  if (!UNLOCKED && !EMBED) { PEND.push(...evs); return; }
   evs.filter((ev) => ev.s).forEach((ev, i) => setTimeout(() => showEvent(ev), 50 + i * 5000));
-  if (VOICE_ON && !EMBED && UNLOCKED) evs.forEach((ev) => announce(ev.sfx, ev.tx));
+  if (VOICE_ON && !EMBED) evs.forEach((ev) => announce(ev.sfx, ev.tx));
 }
 // ---- sentuh untuk dengar ----
 const TYPE_EN = {'1':'Type 1, break M1. Price makes a top, then breaks the minor M1 structure. Entry is at the top box or the lower high box, R1, when price retests after the break.',
@@ -726,7 +727,7 @@ function sayPeriodic(){ const act = sorted().find((s) => s.status === 'AKTIF'), 
   const age = ageOf(run), v = [
     `Status update. The Gold ${DIR(run.arah)} signal at ${NUM(run.entry)} is still running. We are waiting for price to come back to the entry zone. Stop loss ${NUM(run.sl)}, first target ${NUM(run.tp1)}.`,
     `Reminder, sir. Current signal, ${DIR(run.arah)} Gold at ${NUM(run.entry)}.` + (age ? ` It has been running for ${age}.` : '') + ` No result yet. Stay patient and follow the plan.`,
-    `R eleven monitoring. ${DIR(run.arah)} ${NUM(run.entry)} is active. Take profit one ${NUM(run.tp1)}, take profit two ${NUM(run.tp2)}, take profit three ${NUM(run.tp3)}. Stop loss ${NUM(run.sl)}.`,
+    `R eleven monitoring. ${DIR(run.arah)} ${NUM(run.entry)} is waiting for entry. Take profit one ${NUM(run.tp1)}, take profit two ${NUM(run.tp2)}, take profit three ${NUM(run.tp3)}. Stop loss ${NUM(run.sl)}.`,
     `Market check. ${sayWR()} The running signal is ${DIR(run.arah)} at ${NUM(run.entry)}, still waiting for entry.`];
   return v[(pIdx++) % v.length]; }
 setInterval(() => { if (!PERIODIC || !VOICE_ON || EMBED || !UNLOCKED || document.hidden || !CAN_SPEAK) return; if (speechSynthesis.speaking || speechSynthesis.pending) return; announce(null, sayPeriodic()); }, 30000);
@@ -785,7 +786,8 @@ function sha(s){   // SHA-256 segerak, supaya suara boleh keluar terus dalam tek
     else if (PASS_HASH.indexOf(h) >= 0) { try { sessionStorage.setItem(KEY + '_auth', '1'); sessionStorage.setItem(KEY + '_role', 'client'); } catch(e){} $('g-err').textContent = '';
       SFX.ok(); speakNow('Access granted. Welcome aboard, sir. All systems are online. Have a profitable day.'); openBoard(); }
     else { $('g-err').textContent = 'Password salah. Cuba lagi.'; $('g-pass').value = ''; SFX.err(); speakNow('Access denied. Please try again.'); } });
-  function openBoard(){ UNLOCKED = true; musFade(); g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 2200); }
+  function openBoard(){ UNLOCKED = true; musFade();
+    setTimeout(() => { const p = PEND.splice(0); p.filter((ev) => ev.s).forEach((ev, i) => setTimeout(() => showEvent(ev), 50 + i * 5000)); if (VOICE_ON) p.forEach((ev) => announce(ev.sfx, ev.tx)); }, 1200); g.classList.add('out'); document.body.classList.remove('locked'); setTimeout(() => g.remove(), 2200); }
 })();
 // ---- halang salin (mod client) ----
 ['contextmenu', 'dragstart', 'copy', 'cut'].forEach((ev) => document.addEventListener(ev, (e) => { if (!ADMIN && !e.target.closest('input,textarea')) e.preventDefault(); }));
@@ -821,7 +823,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124154942';
+const APP_VERSION = '20261124155632';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
