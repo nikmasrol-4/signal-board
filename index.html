@@ -374,7 +374,8 @@ purge();
 // Setiap hari board bermula kosong: hanya signal hari ini (dan selepas reset admin) dipaparkan
 const resetMark = () => [RESET_AT, (BOARD && BOARD.reset_at) || ''].sort().pop();
 // Board (signal terkini, statistik, carta): hanya signal hari ini selepas reset. History: semua rekod, tidak dikosongkan.
-const view = () => { const r = resetMark(); return data.filter((s) => String(s.masa).slice(0, 10) === DAY() && (!r || String(s.masa) > r)); };
+const RUNNING = (s) => s.status === 'MENUNGGU' || s.status === 'AKTIF';
+const view = () => { const r = resetMark(); return data.filter((s) => (String(s.masa).slice(0, 10) === DAY() || RUNNING(s)) && (!r || String(s.masa) > r)); };
 const histSorted = () => data.slice().sort((a,b) => String(b.masa).localeCompare(String(a.masa)));
 const sorted = () => view().sort((a,b) => String(b.masa).localeCompare(String(a.masa)));
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1800); }
@@ -700,7 +701,7 @@ const SFX = {
   ok(){ tone(988, 0, .16, 'sine', .2); tone(1319, .17, .4, 'sine', .2); return 650; },
   err(){ tone(200, 0, .4, 'square', .1); tone(150, .42, .4, 'square', .1); return 900; } };
 // ---- suara: dalam English, beratur supaya tidak bertindih ----
-const VKEY = KEY + '_voice', SKEY = KEY + '_spoken';
+const VKEY = KEY + '_voice2', SKEY = KEY + '_spoken';
 let VOICE_ON = true, spoken = null, PEND = []; const VLANG = 'en';
 try { VOICE_ON = !EMBED && localStorage.getItem(VKEY) !== '0'; spoken = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch(e){}
 const CAN_SPEAK = 'speechSynthesis' in window;
@@ -1001,7 +1002,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124235620';
+const APP_VERSION = '20261125000218';
 let NEWVER = '';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
