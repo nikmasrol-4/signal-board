@@ -153,6 +153,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
 
   <section class="card wm" id="sig-card">
     <div class="head"><h2>SIGNAL TERKINI</h2><span style="display:flex;gap:8px;align-items:center"><button class="btn2" id="b-say-sig" style="padding:4px 10px;font-size:12px">🔊 Dengar</button><span class="pill" id="l-status">—</span></span></div>
+    <p class="note" id="board-empty" hidden style="margin:10px 0 0;font-size:14px;color:var(--warn)">Board kosong. Menunggu signal baru…</p>
     <p class="sig tap" id="sig-line"><span id="l-arah">—</span> <span id="l-entry">—</span></p>
     <dl class="levels">
       <div><dt>SL</dt><dd id="l-sl">—</dd></div>
@@ -217,7 +218,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
   </section>
 
   <section class="card">
-    <div class="head"><h2 id="history">HISTORY <span id="hist-day" class="note" style="margin:0;font-size:11px;letter-spacing:.06em"></span></h2><span class="admin" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn2" id="b-showall" style="padding:5px 10px;font-size:12px">📅 Hari ini</button><button class="btnd" id="b-reset" style="padding:5px 10px;font-size:12px">🗑 Reset history</button></span></div>
+    <div class="head"><h2 id="history">HISTORY <span id="hist-day" class="note" style="margin:0;font-size:11px;letter-spacing:.06em"></span></h2><span class="admin" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btnd" id="b-reset" style="padding:5px 10px;font-size:12px">🗑 Kosongkan board</button></span></div>
     <div class="tw">
       <table>
         <thead><tr><th></th><th>Masa</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
@@ -318,9 +319,12 @@ const f2 = (v) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-U
 const signed = (v) => (v > 0 ? '+' : '') + v;
 const num = (v) => v == null || v === '' || isNaN(+v) ? null : +v;
 const DAY = () => { const d = new Date(), p = (v) => String(v).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
-let SHOW_ALL = false, RESET_AT = ''; try { RESET_AT = localStorage.getItem(KEY + '_resetAt') || ''; } catch(e){}
+let SHOW_ALL = false, RESET_AT = '', BOARD = {"reset_at":"2026-11-24 14:51"}; try { RESET_AT = localStorage.getItem(KEY + '_resetAt') || ''; } catch(e){}
 // Setiap hari board bermula kosong: hanya signal hari ini (dan selepas reset admin) dipaparkan
-const view = () => data.filter((s) => SHOW_ALL || (String(s.masa).slice(0, 10) === DAY() && (!RESET_AT || String(s.masa) > RESET_AT)));
+const resetMark = () => [RESET_AT, (BOARD && BOARD.reset_at) || ''].sort().pop();
+// Board (signal terkini, statistik, carta): hanya signal hari ini selepas reset. History: semua rekod, tidak dikosongkan.
+const view = () => { const r = resetMark(); return data.filter((s) => String(s.masa).slice(0, 10) === DAY() && (!r || String(s.masa) > r)); };
+const histSorted = () => data.slice().sort((a,b) => String(b.masa).localeCompare(String(a.masa)));
 const sorted = () => view().sort((a,b) => String(b.masa).localeCompare(String(a.masa)));
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1800); }
 function stCls(el, s){ s = String(s||''); el.classList.toggle('acc', s === 'AKTIF'); el.classList.toggle('ok', s.startsWith('WIN')); el.classList.toggle('bad', s === 'LOSS'); el.classList.toggle('warn', s === 'MENUNGGU'); }
@@ -356,10 +360,11 @@ function render(){
   ['entry','sl','tp1','tp2','tp3'].forEach((k) => $('l-' + k).textContent = l ? f2(l[k]) : '—');
   stCls($('l-status'), l && l.status); arCls($('l-arah'), l && l.arah);
   const live = !!l && (l.status === 'MENUNGGU' || l.status === 'AKTIF'); $('sig-line').classList.toggle('live', live); $('sig-card').classList.toggle('live-card', live); $('sig-card').classList.toggle('live-sell', live && l.arah === 'SELL'); $('sig-card').classList.toggle('live-buy', live && l.arah === 'BUY');
-  if (!all.find((s) => s.id === sel)) sel = l ? l.id : null;
+  const H = histSorted();
+  if (!H.find((s) => s.id === sel)) sel = l ? l.id : null;
   const tb = $('rows'); tb.replaceChildren();
-  if (!all.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.textContent = (SHOW_ALL ? 'Belum ada signal.' : 'Belum ada signal hari ini.'); tr.appendChild(td); tb.appendChild(tr); }
-  all.forEach((s) => {
+  if (!H.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.textContent = 'Belum ada signal.'; tr.appendChild(td); tb.appendChild(tr); }
+  H.forEach((s) => {
     const tr = document.createElement('tr'); if (s.id === sel) tr.classList.add('sel');
     const p = s.status in PIPS ? PIPS[s.status] : null;
     const cells = ['📈', s.masa, s.arah, (s.setup || '') + (s.jenis ? ' · T' + s.jenis : ''), f2(s.entry), f2(s.sl), null, p == null ? '—' : signed(p)];
@@ -382,11 +387,12 @@ function render(){
     tr.addEventListener('click', () => { sel = s.id; render(); $('b-back').hidden = false; $('carta').scrollIntoView({behavior:'smooth', block:'start'}); });
     tb.appendChild(tr);
   });
-  $('hist-day').textContent = SHOW_ALL ? '· SEMUA' : '· ' + DAY().split('-').reverse().join('/');
+  $('hist-day').textContent = '· ' + H.length + ' rekod';
+  $('board-empty').hidden = !!l;
   drawAna();
   voiceCheck();
-  const cur = all.find((s) => s.id === sel);
-  if (EMBED) { const ss = $('sigsel'); ss.replaceChildren(); all.forEach((s) => ss.appendChild(new Option(s.masa + ' · ' + s.arah + ' ' + f2(s.entry) + (s.jenis ? ' · T' + s.jenis : '') + ' · ' + s.status, s.id, false, s.id === sel))); ss.onchange = () => { sel = ss.value; render(); }; }
+  const cur = H.find((s) => s.id === sel);
+  if (EMBED) { const ss = $('sigsel'); ss.replaceChildren(); H.forEach((s) => ss.appendChild(new Option(s.masa + ' · ' + s.arah + ' ' + f2(s.entry) + (s.jenis ? ' · T' + s.jenis : '') + ' · ' + s.status, s.id, false, s.id === sel))); ss.onchange = () => { sel = ss.value; render(); }; }
   $('picked').textContent = cur ? 'Signal dipilih: ' + cur.arah + ' ' + f2(cur.entry) + ' · ' + (cur.setup||'') + (cur.jenis ? ' · Type ' + cur.jenis : '') + ' · ' + (cur.masa||'') + ' · ' + cur.status : '';
   drawLine($('c-line'), cur); drawCandle($('c-candle'), cur);
 }
@@ -442,7 +448,7 @@ function levelLines(svg, L, y, x1, x2){
 
 function drawLine(el, s){
   el.replaceChildren();
-  if (!s || num(s.entry) == null){ el.textContent = 'Tiada signal.'; return; }
+  if (!s || num(s.entry) == null){ el.textContent = 'Tiada signal aktif. Tekan mana-mana signal dalam History untuk lihat cartanya.'; return; }
   const L = levels(s), W = Math.max(300, el.clientWidth || 340), H = 320, mR = 118, mT = 34;
   const hasPath = L.P != null && L.B != null;
   const kMid = L.KA != null && L.KB != null ? (L.KA + L.KB) / 2 : L.E;
@@ -480,7 +486,8 @@ function drawCandle(el, s){
   el.replaceChildren();
   const CL = !ADMIN && !!(s && s.candles_client);
   let raw = s && (CL ? s.candles_client : s.candles); if (typeof raw === 'string'){ try { raw = JSON.parse(raw); } catch(e){ raw = null; } }
-  if (!s || !Array.isArray(raw) || raw.length < 2){ el.textContent = ADMIN ? 'Belum ada carta candle untuk signal ini. Hantar screenshot M1 kepada Claude untuk dilukis semula.' : 'Carta candle belum tersedia untuk signal ini.'; return; }
+  if (!s) { el.textContent = 'Tiada signal aktif. Tekan mana-mana signal dalam History untuk lihat cartanya.'; return; }
+  if (!Array.isArray(raw) || raw.length < 2){ el.textContent = ADMIN ? 'Belum ada carta candle untuk signal ini. Hantar screenshot M1 kepada Claude untuk dilukis semula.' : 'Carta candle belum tersedia untuk signal ini.'; return; }
   const cs = raw.filter((k) => Array.isArray(k) && k.length >= 4).map((k) => k.map(Number));
   const L = levels(s), n = cs.length, extra = Math.ceil(n * 0.4);
   const W = Math.max(300, el.clientWidth || 340), H = 340, mR = 112, mT = 34;
@@ -634,7 +641,7 @@ function sayStatus(s){
   if (s.status === 'AKTIF') return `Attention. Entry has been triggered on the Gold ${DIR(s.arah)} signal at ${NUM(s.entry)}. The trade is now running. Stop loss ${NUM(s.sl)}, take profit one ${NUM(s.tp1)}. Good luck, sir.`;
   return ''; }
 const SFX_OF = (s) => String(s.status).startsWith('WIN') ? 'win' : s.status === 'LOSS' ? 'siren' : 'ok';
-function sayLatest(){ const l = sorted()[0]; if (!l) return 'There is no signal yet.';
+function sayLatest(){ const l = sorted()[0]; if (!l) return 'The board is clear. There is no active signal right now. R eleven is standing by for the next setup.';
   const st = {'WIN TP1':'take profit one hit','WIN TP2':'take profit two hit','WIN TP3':'take profit three hit','LOSS':'stop loss hit','MENUNGGU':'waiting for entry','AKTIF':'entry triggered, trade running','BATAL':'cancelled'}[l.status] || l.status;
   let tx = sayNew(l).replace('Attention please. New', 'Latest signal. A'); if (l.status !== 'MENUNGGU') tx = tx.replace(' Wait for price to come back to the entry zone before you enter.', ''); return tx + ` Current status, ${st}.`; }
 function sayAna(){ const tx = ANA && (ANA.teks_en || ANA.teks); if (!tx) return 'There is no market analysis yet.'; return 'Gold market analysis, ' + (ANA.tf || '') + ' chart. ' + tx.join(' '); }
@@ -776,11 +783,10 @@ document.addEventListener('keydown', (e) => { if (ADMIN) return; const k = (e.ke
 $('b-logout').addEventListener('click', () => { try { sessionStorage.removeItem(KEY + '_auth'); sessionStorage.removeItem(KEY + '_role'); } catch(e){} location.reload(); });
 function roleUI(){ const b = $('b-logout'); if (b) b.textContent = (ADMIN ? '👑 Admin' : '👤 Client') + ' · Tukar akaun'; }
 roleUI();
-$('b-showall').addEventListener('click', () => { SHOW_ALL = !SHOW_ALL; $('b-showall').textContent = SHOW_ALL ? '📚 Semua' : '📅 Hari ini'; sel = null; render(); });
 $('b-reset').addEventListener('click', () => { const b = $('b-reset');
-  if (b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = 'Tekan lagi untuk reset'; setTimeout(() => { b.dataset.arm = ''; b.textContent = '🗑 Reset history'; }, 3000); return; }
+  if (b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = 'Tekan lagi untuk reset'; setTimeout(() => { b.dataset.arm = ''; b.textContent = '🗑 Kosongkan board'; }, 3000); return; }
   const d = new Date(), p = (v) => String(v).padStart(2, '0'); RESET_AT = DAY() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
-  try { localStorage.setItem(KEY + '_resetAt', RESET_AT); } catch(e){} b.dataset.arm = ''; b.textContent = '🗑 Reset history'; SHOW_ALL = false; $('b-showall').textContent = '📅 Hari ini'; sel = null; render(); toast('History dikosongkan'); });
+  try { localStorage.setItem(KEY + '_resetAt', RESET_AT); } catch(e){} b.dataset.arm = ''; b.textContent = '🗑 Kosongkan board'; sel = null; render(); toast('Board dikosongkan. History disimpan.'); });
 // hari baru: render semula supaya board kosong sendiri
 let dayNow = DAY(); setInterval(() => { if (DAY() !== dayNow) { dayNow = DAY(); sel = null; render(); } }, 60000);
 save();
@@ -795,6 +801,8 @@ async function sync(){
       data = merge(data, list);
       if (JSON.stringify(data) !== before) { save(); render(); toast('Signal dikemas kini'); }
     }
+    try { const bsrc = location.protocol === 'file:' ? 'https://nikmasrol-4.github.io/signal-board/board.json' : 'board.json';
+      const rb = await fetch(bsrc + '?t=' + Date.now(), {cache:'no-store'}); if (rb.ok) { const bj = await rb.json(); if (JSON.stringify(bj) !== JSON.stringify(BOARD)) { BOARD = bj; sel = null; render(); } } } catch(e){}
     try { const asrc = location.protocol === 'file:' ? 'https://nikmasrol-4.github.io/signal-board/analisis.json' : 'analisis.json';
       const ra = await fetch(asrc + '?t=' + Date.now(), {cache:'no-store'}); if (ra.ok) { const a = await ra.json(); if (JSON.stringify(a) !== JSON.stringify(ANA)) { ANA = a; render(); } } } catch(e){}
     const n = new Date(), p = (v) => String(v).padStart(2,'0');
@@ -802,7 +810,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124144933';
+const APP_VERSION = '20261124145306';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
