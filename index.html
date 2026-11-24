@@ -121,6 +121,11 @@ body.client svg,body.client img{-webkit-user-drag:none;user-drag:none}
 body.client .wm{position:relative;overflow:hidden}
 body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Ctext x='10' y='80' transform='rotate(-22 130 70)' fill='white' font-family='Arial' font-size='15' font-weight='700'%3ER11 SIGNAL %C2%B7 DILARANG KONGSI%3C/text%3E%3C/svg%3E")}
 @media print{body.client .wrap{display:none!important}body.client::before{content:'Dilarang cetak.';display:block;padding:40px;font-size:20px}}
+@keyframes liveblk{0%,100%{opacity:1;text-shadow:0 0 18px currentColor}50%{opacity:.18;text-shadow:none}}
+.sig.live{animation:liveblk 1.1s ease-in-out infinite}
+.live-card.live-buy{border-color:#3ecf8e;box-shadow:0 0 0 1px rgba(62,207,142,.35),0 0 22px rgba(62,207,142,.18)}
+.live-card.live-sell{border-color:#ff6b6b;box-shadow:0 0 0 1px rgba(255,107,107,.35),0 0 22px rgba(255,107,107,.18)}
+@media (prefers-reduced-motion: reduce){.sig.live{animation-duration:2.4s}}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b3038;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -212,7 +217,7 @@ body.client .wm::after{content:'';position:absolute;inset:0;pointer-events:none;
   </section>
 
   <section class="card">
-    <div class="head"><h2 id="history">HISTORY</h2><span class="note admin" style="margin:0">Tukar keputusan terus dalam jadual</span></div>
+    <div class="head"><h2 id="history">HISTORY <span id="hist-day" class="note" style="margin:0;font-size:11px;letter-spacing:.06em"></span></h2><span class="admin" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn2" id="b-showall" style="padding:5px 10px;font-size:12px">📅 Hari ini</button><button class="btnd" id="b-reset" style="padding:5px 10px;font-size:12px">🗑 Reset history</button></span></div>
     <div class="tw">
       <table>
         <thead><tr><th></th><th>Masa</th><th>Arah</th><th>Setup</th><th class="n">Entry</th><th class="n">SL</th><th>Keputusan</th><th class="n">Pips</th></tr></thead>
@@ -312,7 +317,11 @@ const $ = (id) => document.getElementById(id);
 const f2 = (v) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const signed = (v) => (v > 0 ? '+' : '') + v;
 const num = (v) => v == null || v === '' || isNaN(+v) ? null : +v;
-const sorted = () => data.slice().sort((a,b) => String(b.masa).localeCompare(String(a.masa)));
+const DAY = () => { const d = new Date(), p = (v) => String(v).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+let SHOW_ALL = false, RESET_AT = ''; try { RESET_AT = localStorage.getItem(KEY + '_resetAt') || ''; } catch(e){}
+// Setiap hari board bermula kosong: hanya signal hari ini (dan selepas reset admin) dipaparkan
+const view = () => data.filter((s) => SHOW_ALL || (String(s.masa).slice(0, 10) === DAY() && (!RESET_AT || String(s.masa) > RESET_AT)));
+const sorted = () => view().sort((a,b) => String(b.masa).localeCompare(String(a.masa)));
 function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1800); }
 function stCls(el, s){ s = String(s||''); el.classList.toggle('acc', s === 'AKTIF'); el.classList.toggle('ok', s.startsWith('WIN')); el.classList.toggle('bad', s === 'LOSS'); el.classList.toggle('warn', s === 'MENUNGGU'); }
 function arCls(el, a){ el.classList.toggle('ok', a === 'BUY'); el.classList.toggle('bad', a === 'SELL'); }
@@ -346,9 +355,10 @@ function render(){
   });
   ['entry','sl','tp1','tp2','tp3'].forEach((k) => $('l-' + k).textContent = l ? f2(l[k]) : '—');
   stCls($('l-status'), l && l.status); arCls($('l-arah'), l && l.arah);
+  const live = !!l && (l.status === 'MENUNGGU' || l.status === 'AKTIF'); $('sig-line').classList.toggle('live', live); $('sig-card').classList.toggle('live-card', live); $('sig-card').classList.toggle('live-sell', live && l.arah === 'SELL'); $('sig-card').classList.toggle('live-buy', live && l.arah === 'BUY');
   if (!all.find((s) => s.id === sel)) sel = l ? l.id : null;
   const tb = $('rows'); tb.replaceChildren();
-  if (!all.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.textContent = 'Belum ada signal. Tekan + Signal untuk tambah.'; tr.appendChild(td); tb.appendChild(tr); }
+  if (!all.length){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 8; td.textContent = (SHOW_ALL ? 'Belum ada signal.' : 'Belum ada signal hari ini.'); tr.appendChild(td); tb.appendChild(tr); }
   all.forEach((s) => {
     const tr = document.createElement('tr'); if (s.id === sel) tr.classList.add('sel');
     const p = s.status in PIPS ? PIPS[s.status] : null;
@@ -372,6 +382,7 @@ function render(){
     tr.addEventListener('click', () => { sel = s.id; render(); $('b-back').hidden = false; $('carta').scrollIntoView({behavior:'smooth', block:'start'}); });
     tb.appendChild(tr);
   });
+  $('hist-day').textContent = SHOW_ALL ? '· SEMUA' : '· ' + DAY().split('-').reverse().join('/');
   drawAna();
   voiceCheck();
   const cur = all.find((s) => s.id === sel);
@@ -612,7 +623,7 @@ function speak(text){ announce(null, text); }
 // Bercakap terus dalam tekanan jari (telefon hanya benarkan suara pertama di sini)
 function speakNow(text){ if (!CAN_SPEAK) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text), v = pickVoice();
   if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB'; u.rate = 0.95; speechSynthesis.speak(u); } catch(e){} }
-function statsLine(){ const done = data.filter((s) => s.status in PIPS), w = done.filter((s) => s.status.startsWith('WIN')).length, l = done.length - w, p = done.reduce((a, s) => a + PIPS[s.status], 0);
+function statsLine(){ const done = view().filter((s) => s.status in PIPS), w = done.filter((s) => s.status.startsWith('WIN')).length, l = done.length - w, p = done.reduce((a, s) => a + PIPS[s.status], 0);
   if (!done.length) return ''; return `Win rate is now ${Math.round(w / done.length * 100)} percent, with ${w} ${w === 1 ? 'win' : 'wins'} and ${l} ${l === 1 ? 'loss' : 'losses'}. Total ${p >= 0 ? 'plus' : 'minus'} ${Math.abs(p)} pips.`; }
 function sayNew(s){ return `Attention please. New ${DIR(s.arah)} signal for Gold. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. Entry price, ${NUM(s.entry)}. Stop loss at ${NUM(s.sl)}, that is sixty pips. Take profit one at ${NUM(s.tp1)}, take profit two at ${NUM(s.tp2)}, and take profit three at ${NUM(s.tp3)}. Wait for price to come back to the entry zone before you enter. Always manage your risk.`; }
 function sayStatus(s){
@@ -659,21 +670,21 @@ const TYPE_EN = {'1':'Type 1, break M1. Price makes a top, then breaks the minor
 const RES_EN = (s) => ({'WIN TP1':'a win, take profit one, plus 40 pips','WIN TP2':'a win, take profit two, plus 80 pips','WIN TP3':'a win, take profit three, plus 100 pips','LOSS':'a loss, stop loss hit, minus 60 pips','BATAL':'cancelled','MENUNGGU':'still running, waiting for entry','AKTIF':'active, entry triggered and the trade is running'}[s.status] || s.status);
 function grpStats(g){ const d = g.filter((s) => s.status in PIPS), w = d.filter((s) => s.status.startsWith('WIN')).length, l = d.length - w, p = d.reduce((a, s) => a + PIPS[s.status], 0);
   return {n: g.length, w, l, run: g.filter((s) => s.status === 'MENUNGGU').length, wr: d.length ? Math.round(w / d.length * 100) : null, p}; }
-function sayTotal(){ const a = grpStats(data); return `Total signals, ${a.n}. ${a.run} still running, ${a.w} ${a.w === 1 ? 'win' : 'wins'}, and ${a.l} ${a.l === 1 ? 'loss' : 'losses'}.`; }
-function sayWR(){ const a = grpStats(data); return a.wr == null ? 'There is no win rate yet. No signal has finished.' : `Win rate is ${a.wr} percent, from ${a.w + a.l} finished signals. Total ${a.p >= 0 ? 'plus' : 'minus'} ${Math.abs(a.p)} pips.`; }
-function sayWins(){ const a = grpStats(data), ws = data.filter((s) => String(s.status).startsWith('WIN')); return a.w ? `${a.w} ${a.w === 1 ? 'win' : 'wins'} so far. The latest win was the ${DIR(sorted().find((s) => String(s.status).startsWith('WIN')).arah)} signal from ${NUM(sorted().find((s) => String(s.status).startsWith('WIN')).entry)}.` : 'No wins yet.'; }
-function sayLosses(){ const a = grpStats(data); const ls = sorted().find((s) => s.status === 'LOSS'); return a.l ? `${a.l} ${a.l === 1 ? 'loss' : 'losses'} so far. The latest loss was the ${DIR(ls.arah)} signal from ${NUM(ls.entry)}.` : 'No losses so far. Well done, sir.'; }
+function sayTotal(){ const a = grpStats(view()); return `Total signals, ${a.n}. ${a.run} still running, ${a.w} ${a.w === 1 ? 'win' : 'wins'}, and ${a.l} ${a.l === 1 ? 'loss' : 'losses'}.`; }
+function sayWR(){ const a = grpStats(view()); return a.wr == null ? 'There is no win rate yet. No signal has finished.' : `Win rate is ${a.wr} percent, from ${a.w + a.l} finished signals. Total ${a.p >= 0 ? 'plus' : 'minus'} ${Math.abs(a.p)} pips.`; }
+function sayWins(){ const a = grpStats(view()), ws = view().filter((s) => String(s.status).startsWith('WIN')); return a.w ? `${a.w} ${a.w === 1 ? 'win' : 'wins'} so far. The latest win was the ${DIR(sorted().find((s) => String(s.status).startsWith('WIN')).arah)} signal from ${NUM(sorted().find((s) => String(s.status).startsWith('WIN')).entry)}.` : 'No wins yet.'; }
+function sayLosses(){ const a = grpStats(view()); const ls = sorted().find((s) => s.status === 'LOSS'); return a.l ? `${a.l} ${a.l === 1 ? 'loss' : 'losses'} so far. The latest loss was the ${DIR(ls.arah)} signal from ${NUM(ls.entry)}.` : 'No losses so far. Well done, sir.'; }
 function sayChart(kind){ const s = sorted().find((x) => x.id === sel); if (!s) return 'There is no chart yet.';
   let tx = `This ${kind} chart shows the Gold ${DIR(s.arah)} signal from ${s.masa}. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. `;
   if (s.break_level != null) tx += `Price broke the level at ${NUM(s.break_level)}. `;
   if (s.kotak_bawah != null && s.kotak_atas != null) tx += `The entry box is between ${NUM(s.kotak_bawah)} and ${NUM(s.kotak_atas)}. `;
   return tx + `Entry ${NUM(s.entry)}, stop loss ${NUM(s.sl)}, take profit one ${NUM(s.tp1)}. Result: ${RES_EN(s)}.`; }
-function sayType(n){ const a = grpStats(data.filter((s) => String(s.jenis || '') === n));
+function sayType(n){ const a = grpStats(view().filter((s) => String(s.jenis || '') === n));
   return TYPE_EN[n] + ` Results so far for type ${n}: ${a.n} ${a.n === 1 ? 'signal' : 'signals'}, ${a.w} ${a.w === 1 ? 'win' : 'wins'}, ${a.l} ${a.l === 1 ? 'loss' : 'losses'}` + (a.wr != null ? `, win rate ${a.wr} percent.` : '. No finished signal yet.'); }
 function tapSay(text){ ac(); if (CAN_SPEAK) speechSynthesis.cancel(); chain = Promise.resolve(); speakNow(text); }
 [['card-total', sayTotal], ['card-wr', sayWR], ['card-win', sayWins], ['card-loss', sayLosses], ['sig-line', sayLatest]].forEach(([id, fn]) => { const el = $(id); if (el) el.addEventListener('click', () => tapSay(fn())); });
-function sayPips(){ const a = grpStats(data); return (a.w + a.l) ? `Total pips, ${a.p >= 0 ? 'plus' : 'minus'} ${Math.abs(a.p)}, from ${a.w + a.l} finished signals. ${a.w} ${a.w === 1 ? 'win' : 'wins'} and ${a.l} ${a.l === 1 ? 'loss' : 'losses'}.` : 'Total pips is zero. No signal has finished yet.'; }
-function sayAvg(){ const a = grpStats(data), n = a.w + a.l; if (!n) return 'There is no average yet. No signal has finished.'; const v = Math.round(a.p / n * 10) / 10; return `Average result is ${v >= 0 ? 'plus' : 'minus'} ${Math.abs(v)} pips per signal, from ${n} finished ${n === 1 ? 'signal' : 'signals'}.`; }
+function sayPips(){ const a = grpStats(view()); return (a.w + a.l) ? `Total pips, ${a.p >= 0 ? 'plus' : 'minus'} ${Math.abs(a.p)}, from ${a.w + a.l} finished signals. ${a.w} ${a.w === 1 ? 'win' : 'wins'} and ${a.l} ${a.l === 1 ? 'loss' : 'losses'}.` : 'Total pips is zero. No signal has finished yet.'; }
+function sayAvg(){ const a = grpStats(view()), n = a.w + a.l; if (!n) return 'There is no average yet. No signal has finished.'; const v = Math.round(a.p / n * 10) / 10; return `Average result is ${v >= 0 ? 'plus' : 'minus'} ${Math.abs(v)} pips per signal, from ${n} finished ${n === 1 ? 'signal' : 'signals'}.`; }
 function sayWait(){ const w = sorted().filter((s) => s.status === 'MENUNGGU'); if (!w.length) return 'No signal is waiting for a retest right now.';
   return `${w.length} ${w.length === 1 ? 'signal is' : 'signals are'} waiting for price to retest the entry box. ` + w.slice(0, 4).map((s) => `${DIR(s.arah)} at ${NUM(s.entry)}`).join(', ') + (w.length > 4 ? `, and ${w.length - 4} more.` : '.'); }
 function sayStatsAll(){ return 'Signal statistics. ' + sayWR() + ' ' + sayAvg() + ' ' + sayWait(); }
@@ -765,6 +776,13 @@ document.addEventListener('keydown', (e) => { if (ADMIN) return; const k = (e.ke
 $('b-logout').addEventListener('click', () => { try { sessionStorage.removeItem(KEY + '_auth'); sessionStorage.removeItem(KEY + '_role'); } catch(e){} location.reload(); });
 function roleUI(){ const b = $('b-logout'); if (b) b.textContent = (ADMIN ? '👑 Admin' : '👤 Client') + ' · Tukar akaun'; }
 roleUI();
+$('b-showall').addEventListener('click', () => { SHOW_ALL = !SHOW_ALL; $('b-showall').textContent = SHOW_ALL ? '📚 Semua' : '📅 Hari ini'; sel = null; render(); });
+$('b-reset').addEventListener('click', () => { const b = $('b-reset');
+  if (b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = 'Tekan lagi untuk reset'; setTimeout(() => { b.dataset.arm = ''; b.textContent = '🗑 Reset history'; }, 3000); return; }
+  const d = new Date(), p = (v) => String(v).padStart(2, '0'); RESET_AT = DAY() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  try { localStorage.setItem(KEY + '_resetAt', RESET_AT); } catch(e){} b.dataset.arm = ''; b.textContent = '🗑 Reset history'; SHOW_ALL = false; $('b-showall').textContent = '📅 Hari ini'; sel = null; render(); toast('History dikosongkan'); });
+// hari baru: render semula supaya board kosong sendiri
+let dayNow = DAY(); setInterval(() => { if (DAY() !== dayNow) { dayNow = DAY(); sel = null; render(); } }, 60000);
 save();
 async function sync(){
   try {
@@ -784,7 +802,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261124084732';
+const APP_VERSION = '20261124144933';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
   try { const v = (await (await fetch('version.txt?t=' + Date.now(), {cache:'no-store'})).text()).trim();
