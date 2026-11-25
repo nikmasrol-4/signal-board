@@ -755,7 +755,7 @@ function speakNow(text){ if (!CAN_SPEAK) return; try { speechSynthesis.cancel();
   if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB'; u.rate = 0.95; SPK0 = Date.now(); speechSynthesis.speak(u); } catch(e){} }
 function statsLine(){ const done = view().filter((s) => s.status in PIPS), w = done.filter((s) => s.status.startsWith('WIN')).length, l = done.length - w, p = done.reduce((a, s) => a + PIPS[s.status], 0);
   if (!done.length) return ''; return `Win rate is now ${Math.round(w / done.length * 100)} percent, with ${w} ${w === 1 ? 'win' : 'wins'} and ${l} ${l === 1 ? 'loss' : 'losses'}. Total ${p >= 0 ? 'plus' : 'minus'} ${Math.abs(p)} pips.`; }
-function sayNew(s){ return `Attention please. New ${DIR(s.arah)} signal for Gold. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. Entry price, ${NUM(s.entry)}. Stop loss at ${NUM(s.sl)}, that is sixty pips. Take profit one at ${NUM(s.tp1)}, take profit two at ${NUM(s.tp2)}, and take profit three at ${NUM(s.tp3)}. Wait for price to come back to the entry zone before you enter. Always manage your risk.`; }
+function sayNew(s){ return `Attention please. New ${DIR(s.arah)} signal for Gold. Setup, ${s.setup || 'standard'}${s.jenis ? ', type ' + s.jenis : ''}. Entry price, ${NUM(s.entry)}. Stop loss at ${NUM(s.sl)}, that is sixty pips. Take profit one at ${NUM(s.tp1)}, take profit two at ${NUM(s.tp2)}, and take profit three at ${NUM(s.tp3)}. ${s.status === 'MENUNGGU' ? 'Wait for price to come back to the entry zone before you enter.' : 'Entry is live now. The trade is running toward take profit.'} Always manage your risk.`; }
 function sayStatus(s){
   const n = {'WIN TP1':'one','WIN TP2':'two','WIN TP3':'three'}[s.status];
   if (n) return `Congratulations, sir. Take profit ${n} has been hit on the Gold ${DIR(s.arah)} signal from ${NUM(s.entry)}. That is plus ${PIPS[s.status]} pips.${s.max_pips ? ' The move has reached a maximum of ' + s.max_pips + ' pips.' : ''} ${statsLine()} Well done.`;
@@ -1021,7 +1021,7 @@ async function sync(){
     $('sync').className = 'sync ok';
   } catch(e){ $('sync').textContent = 'Tiada sambungan · cuba lagi'; $('sync').className = 'sync bad'; }
 }
-const APP_VERSION = '20261125165522';
+const APP_VERSION = '20261125165748';
 let NEWVER = '';
 async function checkVersion(){
   if (location.protocol === 'file:') return;
